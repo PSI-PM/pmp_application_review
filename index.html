@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMP Application Reviewer — AI-Powered</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0f1f3d; --navy-mid: #1a3260; --gold: #c9a84c; --gold-light: #e8c97a;
+    --gold-pale: #fdf6e3; --cream: #faf8f4; --text: #1a1a2e; --text-muted: #5a6080;
+    --text-light: #8892b0; --border: #ddd8ce; --border-strong: #c5bfb3; --white: #ffffff;
+    --success-bg: #edf7ed; --success: #2d7a2d; --warn-bg: #fff8e6; --warn: #8a5f00;
+    --danger-bg: #fdecea; --danger: #b91c1c; --info-bg: #e8f0fb; --info: #1a5fa8;
+    --radius: 10px; --radius-lg: 16px;
+    --shadow: 0 2px 12px rgba(15,31,61,0.08); --shadow-lg: 0 8px 32px rgba(15,31,61,0.13);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+  .site-header { background: var(--navy); padding: 20px 32px; display: flex; align-items: center; gap: 16px; border-bottom: 3px solid var(--gold); }
+  .site-header .logo-mark { width: 44px; height: 44px; background: var(--gold); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--navy); flex-shrink: 0; }
+  .site-header h1 { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--white); font-weight: 400; }
+  .site-header p { font-size: 12px; color: var(--gold-light); margin-top: 1px; font-weight: 300; }
+  .api-banner { background: var(--warn-bg); border-bottom: 1px solid #f0d98a; padding: 10px 32px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--warn); flex-wrap: wrap; }
+  .api-banner .api-key-input { flex: 1; max-width: 360px; height: 32px; border: 1px solid #e0cc7a; border-radius: 6px; padding: 0 10px; font-size: 13px; font-family: monospace; background: #fffbef; color: var(--text); outline: none; }
+  .api-banner .api-key-input:focus { border-color: var(--gold); }
+  .api-banner .save-key-btn { height: 32px; padding: 0 14px; background: var(--gold); border: none; border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--navy); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .api-banner .save-key-btn:hover { background: var(--gold-light); }
+  .api-key-saved { color: var(--success); font-weight: 500; font-size: 13px; }
+  .main { max-width: 860px; margin: 0 auto; padding: 32px 24px 60px; }
+  .stepper { display: flex; margin-bottom: 28px; background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+  .step-tab { flex: 1; padding: 14px 12px; text-align: center; cursor: pointer; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-muted); border-right: 1px solid var(--border); transition: background 0.15s, color 0.15s; }
+  .step-tab:last-child { border-right: none; }
+  .step-tab:hover { background: var(--gold-pale); }
+  .step-tab.active { background: var(--navy); color: var(--white); }
+  .step-tab .step-num { display: inline-flex; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.15); align-items: center; justify-content: center; font-size: 11px; margin-right: 6px; font-weight: 600; }
+  .step-tab:not(.active) .step-num { background: var(--border); color: var(--text-muted); }
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 28px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .card-title { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--navy); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; font-weight: 400; }
+  .card-title .icon { width: 28px; height: 28px; background: var(--gold-pale); border: 1px solid #e8d99a; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 10px 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--text); background: var(--white); outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.15); }
+  .field textarea { min-height: 90px; resize: vertical; line-height: 1.6; }
+  .field textarea.tall { min-height: 120px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .exp-block { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; background: #fdfcfa; }
+  .exp-block.has-overlap { border-color: #e8cc7a; border-left: 4px solid var(--gold); }
+  .exp-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .exp-label { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--navy-mid); background: #e8edf7; padding: 3px 10px; border-radius: 20px; }
+  .overlap-badge { font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-bg); border: 1px solid #e8cc7a; padding: 2px 8px; border-radius: 20px; }
+  .remove-btn { font-size: 12px; color: var(--text-light); background: none; border: none; cursor: pointer; padding: 3px 8px; border-radius: 5px; font-family: 'DM Sans', sans-serif; }
+  .remove-btn:hover { background: var(--danger-bg); color: var(--danger); }
+  .add-exp-btn { width: 100%; padding: 12px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius); background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text-muted); cursor: pointer; margin-bottom: 20px; transition: background 0.15s, border-color 0.15s; }
+  .add-exp-btn:hover { background: var(--gold-pale); border-color: var(--gold); color: var(--navy); }
+  .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .btn-primary { background: var(--navy); color: var(--white); border: none; padding: 12px 26px; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background 0.15s; }
+  .btn-primary:hover { background: var(--navy-mid); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border-strong); padding: 11px 22px; border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .btn-secondary:hover { background: var(--cream); }
+  .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .review-loading { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+  .review-loading .big-spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 14px; }
+  .verdict-bar { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: var(--radius); margin-bottom: 16px; font-weight: 600; font-size: 15px; }
+  .verdict-go { background: var(--success-bg); color: var(--success); border: 1px solid #a8d5a8; }
+  .verdict-revise { background: var(--warn-bg); color: var(--warn); border: 1px solid #e8cc7a; }
+  .verdict-notready { background: var(--danger-bg); color: var(--danger); border: 1px solid #f5b8b8; }
+  .scores-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .score-item { background: var(--cream); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+  .score-item .score-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
+  .score-item .score-num { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--navy); line-height: 1; }
+  .score-item .score-bar-wrap { height: 4px; background: var(--border); border-radius: 99px; margin-top: 6px; overflow: hidden; }
+  .score-item .score-bar-fill { height: 100%; border-radius: 99px; background: var(--gold); }
+  .section-heading { font-family: 'DM Serif Display', serif; font-size: 15px; color: var(--navy); margin: 16px 0 8px; font-weight: 400; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+  .summary-text { font-size: 14px; line-height: 1.75; color: var(--text); margin-bottom: 12px; }
+  .bullet-list { list-style: none; padding: 0; margin-bottom: 12px; }
+  .bullet-list li { font-size: 13px; padding: 6px 0 6px 24px; position: relative; color: var(--text); border-bottom: 1px solid var(--border); line-height: 1.6; }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list li::before { position: absolute; left: 0; top: 7px; font-size: 14px; }
+  .bullet-list.strengths li::before { content: '✓'; color: var(--success); }
+  .bullet-list.gaps li::before { content: '△'; color: var(--warn); }
+  .proj-feedback { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; background: var(--cream); }
+  .proj-feedback .proj-title { font-weight: 600; font-size: 13px; color: var(--navy); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .proj-feedback .proj-body { font-size: 13px; line-height: 1.7; color: var(--text-muted); margin-bottom: 8px; }
+  .proj-feedback .improved-wrap { background: var(--white); border: 1px solid #e8d99a; border-left: 3px solid var(--gold); border-radius: 6px; padding: 10px 12px; font-size: 13px; line-height: 1.65; color: var(--text); }
+  .proj-feedback .improved-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); margin-bottom: 4px; }
+
+  /* ── Overlap panel ── */
+  .overlap-panel { background: var(--warn-bg); border: 1px solid #e8cc7a; border-left: 4px solid var(--gold); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 20px; }
+  .overlap-panel.clear { background: var(--success-bg); border-color: #a8d5a8; border-left-color: var(--success); }
+  .overlap-panel-title { font-weight: 600; font-size: 14px; color: var(--warn); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .overlap-panel.clear .overlap-panel-title { color: var(--success); }
+  .overlap-row { font-size: 13px; color: var(--text); padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.06); line-height: 1.6; }
+  .overlap-row:last-child { border-bottom: none; }
+  .overlap-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 20px; margin-left: 6px; }
+  .overlap-tag.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid #e8cc7a; }
+  .overlap-tag.danger { background: var(--danger-bg); color: var(--danger); border: 1px solid #f5b8b8; }
+  .overlap-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; margin-left: 12px; }
+
+  .domain-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .domain-pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-strong); background: var(--white); color: var(--text-muted); transition: all 0.12s; font-family: 'DM Sans', sans-serif; }
+  .domain-pill.selected { background: var(--navy); color: var(--white); border-color: var(--navy); }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text-light); }
+  .footer-note { text-align: center; font-size: 11px; color: var(--text-light); margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .info-note { background: var(--info-bg); border: 1px solid #b3cdf5; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: var(--info); margin-bottom: 16px; line-height: 1.6; }
+  .approach-toggle { display: flex; gap: 0; margin-bottom: 14px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-strong); }
+  .approach-btn { flex: 1; padding: 12px 10px; border: none; background: var(--white); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: background 0.15s, color 0.15s; border-right: 1px solid var(--border-strong); }
+  .approach-btn:last-child { border-right: none; }
+  .approach-btn.selected-predictive { background: var(--navy); color: var(--white); }
+  .approach-btn.selected-agile { background: #1a6b3c; color: var(--white); }
+  .approach-btn:hover:not(.selected-predictive):not(.selected-agile) { background: var(--gold-pale); }
+  .approach-required { border: 1.5px solid var(--danger) !important; }
+  .agile-guide { background: #f0faf4; border: 1px solid #a8d5b8; border-left: 4px solid #1a6b3c; border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+  .agile-guide-title { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #1a6b3c; margin-bottom: 10px; }
+  .agile-kw-group { margin-bottom: 8px; }
+  .agile-kw-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #2d7a2d; margin-bottom: 4px; }
+  .agile-kw-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+  .agile-kw-pill { font-size: 11px; padding: 2px 9px; border-radius: 20px; background: #d4eddc; color: #1a5c2a; border: 1px solid #a8d5b8; font-weight: 500; cursor: default; }
+  .predictive-guide { background: #f0f3fa; border: 1px solid #b3c4e8; border-left: 4px solid var(--navy); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+  .predictive-guide-title { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--navy); margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo-mark">P</div>
+  <div>
+    <h1>PMP Application Reviewer</h1>
+    <p>AI-powered experience review &amp; feedback — Powered by Claude</p>
+  </div>
+</header>
+
+<div class="api-banner" id="apiBanner">
+  <span>🔑 Enter your Anthropic API key to activate:</span>
+  <input type="password" class="api-key-input" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off" />
+  <button class="save-key-btn" onclick="saveApiKey()">Save Key</button>
+  <span id="apiKeySavedMsg" style="display:none;" class="api-key-saved">✓ Key saved for this session</span>
+</div>
+
+<main class="main">
+  <nav class="stepper" role="tablist">
+    <button class="step-tab active" onclick="goTab('eligibility')" id="tab-btn-eligibility"><span class="step-num">1</span> Eligibility</button>
+    <button class="step-tab" onclick="goTab('experience')" id="tab-btn-experience"><span class="step-num">2</span> Experience</button>
+    <button class="step-tab" onclick="goTab('review')" id="tab-btn-review"><span class="step-num">3</span> AI Review</button>
+  </nav>
+
+  <!-- Tab 1 -->
+  <div class="tab-panel active" id="panel-eligibility">
+    <div class="card">
+      <div class="card-title"><span class="icon">🎓</span> Education &amp; Training</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Highest education level</label>
+          <select id="edu">
+            <option value="">Select...</option>
+            <option value="high_school">High school diploma / secondary</option>
+            <option value="assoc">Associate degree</option>
+            <option value="bachelor">Bachelor's degree</option>
+            <option value="master">Master's degree</option>
+            <option value="phd">Doctoral degree (PhD)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>PM training hours completed</label>
+          <input type="text" id="training_hrs" placeholder="e.g. 35" />
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="icon">📅</span> Project Management Experience</div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Total months of PM experience</label>
+          <input type="text" id="pm_months" placeholder="e.g. 36" />
+        </div>
+        <div class="field">
+          <label>Overlapping months (concurrent projects)</label>
+          <input type="text" id="overlap_months" placeholder="e.g. 6" />
+        </div>
+      </div>
+      <div class="info-note">
+        <strong>PMI requirements:</strong> With a bachelor's degree or higher = 36 non-overlapping months leading projects. With a high school diploma = 60 non-overlapping months. All applicants: 35 hours of PM education/training.<br><br>
+        <strong>Overlap rule:</strong> Concurrent projects are allowed, but hours from overlapping periods may only be counted once. The tool will automatically detect date overlaps across your projects.
+      </div>
+    </div>
+    <div class="btn-row"><div></div><button class="btn-primary" onclick="goTab('experience')">Next: Add Experience →</button></div>
+  </div>
+
+  <!-- Tab 2 -->
+  <div class="tab-panel" id="panel-experience">
+    <div id="overlap-alert" style="display:none;"></div>
+    <div id="exp-list"></div>
+    <button class="add-exp-btn" onclick="addExp()">+ Add project experience</button>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goTab('eligibility')">← Back</button>
+      <button class="btn-primary" id="reviewBtn" onclick="runReview()">
+        <span id="reviewBtnLabel">Get AI Review</span>
+        <span id="reviewBtnIcon">✦</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab 3 -->
+  <div class="tab-panel" id="panel-review">
+    <div id="review-output">
+      <div class="empty-state">
+        <div style="font-size:40px;margin-bottom:12px;">📋</div>
+        <p>Complete your experience on Step 2 and click <strong>Get AI Review</strong> to see feedback here.</p>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn-secondary" onclick="goTab('experience')">← Edit Experience</button>
+      <button class="btn-primary" onclick="runReview()">↺ Re-run Review</button>
+    </div>
+  </div>
+
+  <div class="footer-note">PMP Application Reviewer · Powered by Anthropic Claude · For educational use through your training program</div>
+</main>
+
+<script>
+let apiKey = '';
+let experiences = [];
+let isReviewing = false;
+
+const DOMAINS = ['Business Analysis','Stakeholder Engagement','Risk Management','Procurement',
+  'Program / Portfolio Management','IT / Technology','Construction / Engineering',
+  'Healthcare','Financial Services','Government / Defense','Telecommunications'];
+
+// ── API Key ──
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val.startsWith('sk-ant-')) {
+    alert('That does not look like a valid Anthropic API key (should start with sk-ant-). Please check and try again.');
+    return;
+  }
+  apiKey = val;
+  document.getElementById('apiKeyInput').value = '••••••••••••••••••';
+  document.getElementById('apiKeySavedMsg').style.display = 'inline';
+  document.getElementById('apiBanner').style.background = '#edf7ed';
+  document.getElementById('apiBanner').style.borderBottomColor = '#a8d5a8';
+}
+
+// ── Tab navigation ──
+function goTab(name) {
+  ['eligibility','experience','review'].forEach(t => {
+    document.getElementById('panel-'+t).classList.toggle('active', t === name);
+    document.getElementById('tab-btn-'+t).classList.toggle('active', t === name);
+  });
+  if (name === 'experience') { checkOverlaps(); }
+}
+
+// ── Date parsing ──
+function parseDate(str) {
+  // Accepts MM/YYYY or YYYY-MM or YYYY
+  if (!str || !str.trim()) return null;
+  const s = str.trim();
+  let m, y;
+  if (/^\d{1,2}\/\d{4}$/.test(s)) {
+    [m, y] = s.split('/').map(Number);
+  } else if (/^\d{4}-\d{1,2}$/.test(s)) {
+    [y, m] = s.split('-').map(Number);
+  } else if (/^\d{4}$/.test(s)) {
+    y = Number(s); m = 1;
+  } else { return null; }
+  if (m < 1 || m > 12 || y < 1980 || y > 2030) return null;
+  return { y, m };
+}
+
+function dateToMonths(d) { return d ? d.y * 12 + d.m : null; }
+function monthsToStr(n) { return Math.round(n) + ' month' + (Math.round(n) !== 1 ? 's' : ''); }
+
+// ── Overlap detection ──
+function detectOverlaps() {
+  const results = []; // { i, j, overlapMonths, hoursI, hoursJ, auditRisk }
+  for (let i = 0; i < experiences.length; i++) {
+    for (let j = i + 1; j < experiences.length; j++) {
+      const a = experiences[i], b = experiences[j];
+      const aStart = dateToMonths(parseDate(a.start));
+      const aEnd   = dateToMonths(parseDate(a.end));
+      const bStart = dateToMonths(parseDate(b.start));
+      const bEnd   = dateToMonths(parseDate(b.end));
+      if (!aStart || !aEnd || !bStart || !bEnd) continue;
+      const overlapStart = Math.max(aStart, bStart);
+      const overlapEnd   = Math.min(aEnd, bEnd);
+      if (overlapEnd >= overlapStart) {
+        const overlapMonths = overlapEnd - overlapStart + 1;
+        const hoursI = parseFloat(a.hours) || 0;
+        const hoursJ = parseFloat(b.hours) || 0;
+        // Audit risk: if combined hours during overlap suggest >10hr/day average
+        const combinedHoursPerMonth = overlapMonths > 0 ? ((hoursI + hoursJ) / overlapMonths) : 0;
+        const auditRisk = combinedHoursPerMonth > 160 ? 'High' : combinedHoursPerMonth > 80 ? 'Medium' : 'Low';
+        results.push({ i, j, overlapMonths, hoursI, hoursJ, auditRisk, combinedHoursPerMonth });
+      }
+    }
+  }
+  return results;
+}
+
+function checkOverlaps() {
+  const overlaps = detectOverlaps();
+  const alertEl = document.getElementById('overlap-alert');
+
+  // Mark blocks
+  document.querySelectorAll('.exp-block').forEach((el, idx) => {
+    const inOverlap = overlaps.some(o => o.i === idx || o.j === idx);
+    el.classList.toggle('has-overlap', inOverlap);
+    const badge = el.querySelector('.overlap-badge');
+    if (badge) badge.style.display = inOverlap ? 'inline' : 'none';
+  });
+
+  if (overlaps.length === 0) {
+    alertEl.style.display = 'none';
+    return;
+  }
+
+  alertEl.style.display = 'block';
+  const hasHigh = overlaps.some(o => o.auditRisk === 'High');
+  const hasMed  = overlaps.some(o => o.auditRisk === 'Medium');
+  const panelClass = hasHigh ? '' : hasMed ? '' : 'clear';
+  const icon = hasHigh ? '⚠' : '⚠';
+  const titleColor = hasHigh ? 'color:var(--danger)' : 'color:var(--warn)';
+
+  let rows = overlaps.map(o => {
+    const nameI = experiences[o.i].title || `Project ${o.i+1}`;
+    const nameJ = experiences[o.j].title || `Project ${o.j+1}`;
+    const tagClass = o.auditRisk === 'High' ? 'danger' : 'warn';
+    let detail = `Overlap: ${monthsToStr(o.overlapMonths)}.`;
+    if (o.hoursI || o.hoursJ) {
+      detail += ` Combined hours claimed (${Math.round(o.hoursI + o.hoursJ)} hrs) during overlap — ensure hours are not double-counted.`;
+    }
+    if (o.auditRisk !== 'Low') {
+      detail += o.auditRisk === 'High'
+        ? ' ⚠ Hour totals suggest possible double-counting — HIGH audit risk.'
+        : ' Hour totals during concurrent period warrant review.';
+    }
+    return `<div class="overlap-row">
+      <strong>${nameI}</strong> &amp; <strong>${nameJ}</strong> overlap by ${monthsToStr(o.overlapMonths)}
+      <span class="overlap-tag ${tagClass}">Audit risk: ${o.auditRisk}</span>
+      <div class="overlap-detail">${detail}</div>
+    </div>`;
+  }).join('');
+
+  alertEl.innerHTML = `<div class="overlap-panel">
+    <div class="overlap-panel-title" style="${titleColor}">${icon} Concurrent Project Overlap Detected</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;line-height:1.6;">
+      PMI allows concurrent projects, but <strong>hours during overlapping periods may only be counted once</strong>.
+      Review the pairs below and adjust your hours or descriptions to ensure compliance.
+    </p>
+    ${rows}
+  </div>`;
+}
+
+// ── Experience management ──
+function addExp() {
+  experiences.push({ title:'', start:'', end:'', hours:'', approach:'', domain:'', objective:'', role:'', outcomes:'', process_alignment:'' });
+  renderExpList();
+  setTimeout(() => {
+    const blocks = document.querySelectorAll('.exp-block');
+    if (blocks.length) blocks[blocks.length-1].scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 100);
+}
+
+function removeExp(i) {
+  experiences.splice(i, 1);
+  renderExpList();
+  checkOverlaps();
+}
+
+function updateExp(i, field, val) {
+  experiences[i][field] = val;
+  if (field === 'start' || field === 'end' || field === 'hours') checkOverlaps();
+  if (['objective','role','outcomes','process_alignment'].includes(field)) updateWordCount(i);
+}
+
+function wordCount(exp) {
+  const combined = [exp.objective, exp.role, exp.outcomes, exp.process_alignment].filter(Boolean).join(' ');
+  return combined.trim() ? combined.trim().split(/\s+/).length : 0;
+}
+
+function updateWordCount(i) {
+  const el = document.getElementById('wc-' + i);
+  if (!el) return;
+  const count = wordCount(experiences[i]);
+  const color = count < 200 ? 'var(--danger)' : count > 500 ? 'var(--warn)' : 'var(--success)';
+  const status = count < 200 ? `${count}/200 min — need ${200-count} more words` : count > 500 ? `${count}/500 — ${count-500} words over limit` : `${count} words ✓ within 200–500 range`;
+  el.innerHTML = `<span style="color:${color};font-weight:600;">${status}</span>`;
+}
+
+function setApproach(i, approach) {
+  experiences[i].approach = approach;
+  renderExpList();
+}
+
+function setDomain(i, domain) {
+  experiences[i].domain = domain;
+  renderExpList();
+}
+
+function renderExpList() {
+  const list = document.getElementById('exp-list');
+  if (experiences.length === 0) {
+    list.innerHTML = `<div class="card" style="text-align:center;padding:32px;color:var(--text-muted);">
+      <div style="font-size:32px;margin-bottom:10px;">📁</div>
+      <p style="font-size:14px;">No projects added yet. Click the button below to add your first project experience.</p>
+    </div>`;
+    return;
+  }
+  list.innerHTML = experiences.map((exp, i) => `
+    <div class="exp-block" id="expblock-${i}">
+      <div class="exp-block-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="exp-label">Project ${i+1}</span>
+          <span class="overlap-badge" style="display:none;">⚠ Overlap detected</span>
+        </div>
+        <button class="remove-btn" onclick="removeExp(${i})">✕ Remove</button>
+      </div>
+      <div class="field">
+        <label>Project title / your role</label>
+        <input type="text" value="${esc(exp.title)}" oninput="updateExp(${i},'title',this.value)"
+          placeholder="e.g. Senior PM – Zero Trust Architecture Implementation" />
+      </div>
+      <div class="grid-3">
+        <div class="field">
+          <label>Start (MM/YYYY)</label>
+          <input type="text" value="${esc(exp.start)}" oninput="updateExp(${i},'start',this.value)" placeholder="01/2022" />
+        </div>
+        <div class="field">
+          <label>End (MM/YYYY)</label>
+          <input type="text" value="${esc(exp.end)}" oninput="updateExp(${i},'end',this.value)" placeholder="06/2024" />
+        </div>
+        <div class="field">
+          <label>Hours leading</label>
+          <input type="text" value="${esc(exp.hours)}" oninput="updateExp(${i},'hours',this.value)" placeholder="e.g. 500" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Project Approach <span style="color:var(--danger);font-size:13px;">*</span></label>
+        <div class="approach-toggle" id="approach-toggle-${i}">
+          <button class="approach-btn${exp.approach==='Predictive'?' selected-predictive':''}" onclick="setApproach(${i},'Predictive')">📐 Predictive (Waterfall)</button>
+          <button class="approach-btn${exp.approach==='Agile'?' selected-agile':''}" onclick="setApproach(${i},'Agile')">🔄 Agile</button>
+          <button class="approach-btn${exp.approach==='Hybrid'?' selected-agile':''}" onclick="setApproach(${i},'Hybrid')">⚡ Hybrid</button>
+        </div>
+        ${!exp.approach ? '<div style="font-size:12px;color:var(--danger);margin-top:-8px;margin-bottom:8px;">⚠ Required — select an approach before submitting for review</div>' : ''}
+      </div>
+
+      ${exp.approach === 'Agile' || exp.approach === 'Hybrid' ? `
+      <div class="agile-guide">
+        <div class="agile-guide-title">🔄 Agile Keyword Guide — include these in your description</div>
+        <div class="agile-kw-group">
+          <div class="agile-kw-label">Roles</div>
+          <div class="agile-kw-pills">
+            <span class="agile-kw-pill">Scrum Master</span><span class="agile-kw-pill">Product Owner</span><span class="agile-kw-pill">Agile Team Facilitator</span>
+          </div>
+        </div>
+        <div class="agile-kw-group">
+          <div class="agile-kw-label">Artifacts &amp; Tools</div>
+          <div class="agile-kw-pills">
+            <span class="agile-kw-pill">Product Backlog</span><span class="agile-kw-pill">Sprint Backlog</span><span class="agile-kw-pill">Kanban Board</span><span class="agile-kw-pill">Burndown Chart</span><span class="agile-kw-pill">Burnup Chart</span>
+          </div>
+        </div>
+        <div class="agile-kw-group">
+          <div class="agile-kw-label">Events</div>
+          <div class="agile-kw-pills">
+            <span class="agile-kw-pill">Sprint Planning</span><span class="agile-kw-pill">Daily Scrum</span><span class="agile-kw-pill">Sprint Review</span><span class="agile-kw-pill">Retrospective</span>
+          </div>
+        </div>
+        <div class="agile-kw-group">
+          <div class="agile-kw-label">Practices</div>
+          <div class="agile-kw-pills">
+            <span class="agile-kw-pill">Iterative development</span><span class="agile-kw-pill">Incremental delivery</span><span class="agile-kw-pill">Continuous integration</span><span class="agile-kw-pill">Adaptive planning</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#2d7a2d;margin-top:8px;line-height:1.5;">Use these terms naturally in your Role and Process Alignment fields to demonstrate Agile fluency. The AI reviewer will check for their presence.</div>
+      </div>` : ''}
+
+      ${exp.approach === 'Predictive' ? `
+      <div class="predictive-guide">
+        <div class="predictive-guide-title">📐 Predictive (Waterfall) Keyword Guide</div>
+        <div class="agile-kw-group">
+          <div class="agile-kw-label">Process Groups</div>
+          <div class="agile-kw-pills">
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Initiating</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Planning</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Executing</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Monitoring &amp; Controlling</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Closing</span>
+          </div>
+        </div>
+        <div class="agile-kw-group">
+          <div class="agile-kw-label">Knowledge Areas</div>
+          <div class="agile-kw-pills">
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Scope Management</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Schedule Management</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Cost Management</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Risk Management</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Stakeholder Engagement</span>
+            <span class="agile-kw-pill" style="background:#dce4f5;color:#1a3260;border-color:#b3c4e8;">Quality Management</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--navy-mid);margin-top:8px;line-height:1.5;">Structure your Process Alignment field using the five process groups above. Reference PMBOK knowledge areas in your Role and Outcomes fields.</div>
+      </div>` : ''}
+
+      <div class="field">
+        <label>Secondary domain / industry context <span style="font-weight:400;text-transform:none;font-size:11px;">(optional)</span></label>
+        <div class="domain-pills">
+          ${DOMAINS.filter(d=>!['Predictive (Waterfall)','Agile','Hybrid'].includes(d)).map(d => `<button class="domain-pill${exp.domain===d?' selected':''}" onclick="setDomain(${i},'${d}')">${d}</button>`).join('')}
+        </div>
+      </div>
+      <div style="background:var(--info-bg);border:1px solid #b3cdf5;border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--info);line-height:1.6;">
+        <strong>PMI requires 200–500 words per project</strong> across four specific components. Complete each field below — the tool will combine them for word count tracking and AI review.
+      </div>
+
+      <div class="field">
+        <label>1. Project Objective</label>
+        <textarea style="min-height:60px;resize:vertical;" oninput="updateExp(${i},'objective',this.value)"
+          placeholder="One sentence: what the project aimed to achieve. e.g. Implement a Zero Trust security architecture across all enterprise endpoints to reduce lateral movement risk for the Department of Energy.">${esc(exp.objective||'')}</textarea>
+      </div>
+
+      <div class="field">
+        <label>2. Your Role</label>
+        <textarea style="min-height:80px;resize:vertical;" oninput="updateExp(${i},'role',this.value)"
+          placeholder="Specific summary of your direct leadership and responsibilities. Use first-person action verbs: Led, Directed, Managed, Developed, Coordinated, Oversaw...">${esc(exp.role||'')}</textarea>
+      </div>
+
+      <div class="field">
+        <label>3. Project Outcomes</label>
+        <textarea style="min-height:70px;resize:vertical;" oninput="updateExp(${i},'outcomes',this.value)"
+          placeholder="Brief summary of the final deliverable, service, or result. What was produced or achieved by the end of the project?">${esc(exp.outcomes||'')}</textarea>
+      </div>
+
+      <div class="field">
+        <label>4. Process Alignment</label>
+        <textarea style="min-height:100px;resize:vertical;" oninput="updateExp(${i},'process_alignment',this.value)"
+          placeholder="Tasks you directed, organized by process area:&#10;• Initiating: ...&#10;• Planning: ...&#10;• Executing: ...&#10;• Monitoring &amp; Controlling: ...&#10;• Closing: ...">${esc(exp.process_alignment||'')}</textarea>
+      </div>
+
+      <div id="wc-${i}" style="font-size:12px;margin-top:-8px;margin-bottom:10px;padding:6px 10px;background:var(--cream);border-radius:6px;border:1px solid var(--border);">
+        <span style="color:var(--text-muted);">Word count: 0/200 min — enter text above to track progress</span>
+      </div>
+    </div>
+  `).join('');
+  checkOverlaps();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Build overlap summary for AI prompt ──
+function buildOverlapSummary() {
+  const overlaps = detectOverlaps();
+  if (overlaps.length === 0) return 'No date overlaps detected between projects.';
+  return overlaps.map(o => {
+    const nameI = experiences[o.i].title || `Project ${o.i+1}`;
+    const nameJ = experiences[o.j].title || `Project ${o.j+1}`;
+    return `"${nameI}" and "${nameJ}" overlap by ${monthsToStr(o.overlapMonths)}. Combined hours in overlap period: ${Math.round(o.hoursI + o.hoursJ)}. Calculated audit risk: ${o.auditRisk}.`;
+  }).join(' | ');
+}
+
+// ── Run review ──
+async function runReview() {
+  if (isReviewing) return;
+  if (!apiKey) { alert('Please enter and save your Anthropic API key at the top of the page first.'); return; }
+  if (experiences.length === 0) { alert('Please add at least one project experience before reviewing.'); goTab('experience'); return; }
+  const missingApproach = experiences.filter(e => !e.approach);
+  if (missingApproach.length > 0) {
+    alert('Please select a project approach (Predictive, Agile, or Hybrid) for every project before running the review.');
+    goTab('experience');
+    return;
+  }
+
+  isReviewing = true;
+  goTab('review');
+  const btn = document.getElementById('reviewBtn');
+  if (btn) { btn.disabled = true; document.getElementById('reviewBtnLabel').textContent = 'Reviewing...'; document.getElementById('reviewBtnIcon').innerHTML = '<span class="spinner"></span>'; }
+
+  document.getElementById('review-output').innerHTML = `<div class="review-loading"><div class="big-spinner"></div><p>Analyzing your PMP application experience...<br><span style="font-size:12px;color:var(--text-light);">This takes about 15–20 seconds</span></p></div>`;
+
+  const eduEl = document.getElementById('edu');
+  const eduLabel = eduEl.options[eduEl.selectedIndex]?.text || 'Not specified';
+  const hrs = document.getElementById('training_hrs').value || 'Not provided';
+  const months = document.getElementById('pm_months').value || 'Not provided';
+  const overlap = document.getElementById('overlap_months').value || '0';
+  const net = (months && overlap) ? (Number(months) - Number(overlap)) : 'Not calculated';
+  const overlapSummary = buildOverlapSummary();
+  const overlapData = detectOverlaps();
+
+  const systemPrompt = `You are a senior PMP application reviewer with 15+ years of experience helping candidates pass PMI's audit process. You know the PMP Examination Content Outline deeply and understand exactly what PMI auditors look for.
+
+Return ONLY valid JSON. No markdown, no code fences. Use this exact structure:
+{
+  "eligibility_ok": true,
+  "eligibility_notes": "brief note on hour/month requirements",
+  "overlap_assessment": "2-3 sentence assessment of the overlap situation and whether hours appear double-counted",
+  "scores": { "clarity": 82, "pmi_alignment": 75, "action_verbs": 90, "specificity": 68, "overall": 79 },
+  "summary": "3-4 sentence honest assessment",
+  "strengths": ["strength 1", "strength 2"],
+  "gaps": ["gap 1", "gap 2"],
+  "per_project": [{ "title": "project title", "score": 78, "feedback": "2-3 sentence feedback", "improved_snippet": "rewritten first 1-2 sentences" }],
+  "final_recommendation": "Go",
+  "audit_risk": "Low"
+}
+final_recommendation: exactly Go / Revise / Not Ready
+audit_risk: exactly Low / Medium / High
+All scores 0-100. If overlapping hours appear double-counted, that must raise audit_risk to at least Medium and be flagged in gaps.
+For each project, evaluate all four required PMI components (Objective, Role, Outcomes, Process Alignment). Flag missing or weak components explicitly. Check word count — under 200 words is a compliance issue; over 500 is also flagged.
+For PREDICTIVE projects: Process Alignment must reference all five process groups (Initiating, Planning, Executing, Monitoring/Controlling, Closing). Check for PMBOK knowledge area terminology.
+For AGILE projects: Check for presence of Agile terminology — Roles (Scrum Master, Product Owner, Agile Team Facilitator), Artifacts (Product Backlog, Sprint Backlog, Kanban Board, Burndown/Burnup Charts), Events (Sprint Planning, Daily Scrum, Sprint Review, Retrospective), Practices (iterative development, incremental delivery, continuous integration, adaptive planning). Flag if Agile keywords are absent from an Agile-designated project — this is a significant gap.
+For HYBRID projects: Check for both Agile terminology and process group structure.`;
+
+  const userMsg = `Review this PMP application:
+
+BACKGROUND:
+- Education: ${eduLabel}
+- Training hours: ${hrs}
+- Total PM months: ${months} | Overlapping: ${overlap} | Net: ${net}
+
+OVERLAP ANALYSIS (pre-computed from dates entered):
+${overlapSummary}
+
+PROJECTS:
+${experiences.map((e,i) => `[Project ${i+1}]
+Title: ${e.title||'Not provided'} | Dates: ${e.start||'?'} to ${e.end||'?'} | Hours: ${e.hours||'Not provided'} | Approach: ${e.approach||'Not specified'} | Secondary domain: ${e.domain||'None'}
+Word count: ${wordCount(e)} (PMI requires 200-500)
+1. Project Objective: ${e.objective||'Not provided'}
+2. Your Role: ${e.role||'Not provided'}
+3. Project Outcomes: ${e.outcomes||'Not provided'}
+4. Process Alignment: ${e.process_alignment||'Not provided'}`).join('\n---\n')}
+
+Assess: action verbs, specificity, evidence of leading/directing (not just contributing), PMI ECO alignment, and overlap/double-counting risk. The overlap analysis above is from date math — incorporate it into your audit_risk and overlap_assessment.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.error?.message || `API error ${resp.status}`); }
+    const data = await resp.json();
+    const raw = data.content?.find(b => b.type === 'text')?.text || '';
+    const result = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    renderReview(result, overlapData);
+  } catch(err) {
+    document.getElementById('review-output').innerHTML = `<div class="card" style="border-color:#f5b8b8;">
+      <div class="card-title" style="color:var(--danger);">⚠ Review Error</div>
+      <p style="font-size:14px;color:var(--text-muted);line-height:1.7;">${err.message}</p>
+      <p style="font-size:13px;margin-top:10px;color:var(--text-light);">Check your API key and try again. Verify credits at platform.anthropic.com.</p>
+    </div>`;
+  } finally {
+    isReviewing = false;
+    if (btn) { btn.disabled = false; document.getElementById('reviewBtnLabel').textContent = 'Re-run Review'; document.getElementById('reviewBtnIcon').textContent = '↺'; }
+  }
+}
+
+function renderReview(r, overlapData) {
+  const rec = r.final_recommendation || 'Revise';
+  const risk = r.audit_risk || 'Medium';
+  const verdictClass = rec==='Go'?'verdict-go':rec==='Revise'?'verdict-revise':'verdict-notready';
+  const verdictIcon  = rec==='Go'?'✓':rec==='Revise'?'△':'✕';
+  const riskColor = risk==='Low'?'var(--success)':risk==='Medium'?'var(--warn)':'var(--danger)';
+  const riskBg    = risk==='Low'?'var(--success-bg)':risk==='Medium'?'var(--warn-bg)':'var(--danger-bg)';
+
+  let html = '';
+
+  // Verdict
+  html += `<div class="verdict-bar ${verdictClass}">
+    <span style="font-size:18px;">${verdictIcon}</span>
+    <span>Recommendation: ${rec}</span>
+    <span style="margin-left:auto;font-size:12px;background:${riskBg};color:${riskColor};padding:3px 10px;border-radius:20px;font-weight:600;">Audit risk: ${risk}</span>
+  </div>`;
+
+  // Eligibility
+  if (r.eligibility_notes) {
+    const c = r.eligibility_ok; 
+    html += `<div style="background:${c?'var(--success-bg)':'var(--danger-bg)'};border:1px solid ${c?'#a8d5a8':'#f5b8b8'};border-radius:var(--radius);padding:10px 14px;font-size:13px;color:${c?'var(--success)':'var(--danger)'};margin-bottom:12px;line-height:1.6;">
+      <strong>${c?'✓ Eligibility':'⚠ Eligibility issue'}:</strong> ${r.eligibility_notes}
+    </div>`;
+  }
+
+  // Overlap panel in review output
+  if (overlapData && overlapData.length > 0) {
+    const hasHigh = overlapData.some(o=>o.auditRisk==='High');
+    const borderCol = hasHigh ? '#f5b8b8' : '#e8cc7a';
+    const bgCol = hasHigh ? 'var(--danger-bg)' : 'var(--warn-bg)';
+    const txtCol = hasHigh ? 'var(--danger)' : 'var(--warn)';
+    const overlapRows = overlapData.map(o => {
+      const nameI = experiences[o.i].title || `Project ${o.i+1}`;
+      const nameJ = experiences[o.j].title || `Project ${o.j+1}`;
+      return `<div style="font-size:13px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
+        <strong>${nameI}</strong> &amp; <strong>${nameJ}</strong>: ${monthsToStr(o.overlapMonths)} overlap
+        — combined hours in period: ${Math.round(o.hoursI + o.hoursJ)}
+        <span style="display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:20px;margin-left:6px;background:${bgCol};color:${txtCol};border:1px solid ${borderCol};">
+          ${o.auditRisk} risk
+        </span>
+      </div>`;
+    }).join('');
+    html += `<div class="card" style="border-color:${borderCol};border-left:4px solid ${hasHigh?'var(--danger)':'var(--gold)'};">
+      <div class="card-title" style="color:${hasHigh?'var(--danger)':'var(--warn)'}"><span class="icon">⚠</span> Concurrent Project Overlap</div>
+      ${r.overlap_assessment ? `<p style="font-size:13px;line-height:1.7;color:var(--text-muted);margin-bottom:12px;">${r.overlap_assessment}</p>` : ''}
+      ${overlapRows}
+      <p style="font-size:12px;color:var(--text-light);margin-top:10px;">PMI requires that hours from concurrent periods are counted only once. Revise your hours if they overlap with another project's reported hours.</p>
+    </div>`;
+  } else if (experiences.length > 1) {
+    html += `<div style="background:var(--success-bg);border:1px solid #a8d5a8;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:var(--success);margin-bottom:12px;">
+      ✓ No date overlaps detected between your projects.
+    </div>`;
+  }
+
+  // Summary
+  html += `<div class="card"><div class="card-title"><span class="icon">📝</span> Overall Assessment</div><p class="summary-text">${r.summary||''}</p></div>`;
+
+  // Scores
+  const scoreLabels = { clarity:'Clarity', pmi_alignment:'PMI Alignment', action_verbs:'Action Verbs', specificity:'Specificity', overall:'Overall' };
+  html += `<div class="card"><div class="card-title"><span class="icon">📊</span> Score Breakdown</div><div class="scores-grid">
+    ${Object.entries(r.scores||{}).map(([k,v])=>`<div class="score-item"><div class="score-label">${scoreLabels[k]||k}</div><div class="score-num">${v}</div><div class="score-bar-wrap"><div class="score-bar-fill" style="width:${v}%"></div></div></div>`).join('')}
+  </div></div>`;
+
+  // Strengths & gaps
+  if ((r.strengths||[]).length || (r.gaps||[]).length) {
+    html += `<div class="card"><div class="card-title"><span class="icon">🔎</span> Strengths &amp; Gaps</div>`;
+    if ((r.strengths||[]).length) html += `<div class="section-heading">Strengths</div><ul class="bullet-list strengths">${r.strengths.map(s=>`<li>${s}</li>`).join('')}</ul>`;
+    if ((r.gaps||[]).length) html += `<div class="section-heading">Areas to strengthen</div><ul class="bullet-list gaps">${r.gaps.map(g=>`<li>${g}</li>`).join('')}</ul>`;
+    html += `</div>`;
+  }
+
+  // Per-project
+  if ((r.per_project||[]).length) {
+    html += `<div class="card"><div class="card-title"><span class="icon">📁</span> Per-Project Feedback</div>`;
+    r.per_project.forEach((p,i) => {
+      const sc = p.score||0;
+      const sColor = sc>=80?'var(--success)':sc>=60?'var(--warn)':'var(--danger)';
+      html += `<div class="proj-feedback">
+        <div class="proj-title"><span>${p.title||'Project '+(i+1)}</span>${p.score!==undefined?`<span style="color:${sColor};font-weight:700;">${p.score}/100</span>`:''}</div>
+        <div class="proj-body">${p.feedback||''}</div>
+        ${p.improved_snippet?`<div class="improved-wrap"><div class="improved-label">✦ Suggested rewrite</div>${p.improved_snippet}</div>`:''}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('review-output').innerHTML = html;
+}
+
+// ── Init ──
+renderExpList();
+</script>
+</body>
+</html>

@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PMP Application Reviewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --grid: #000000;
+    --page-bg: #e9e9e9;
+    --sheet-bg: #ffffff;
+    --ink: #1a1a1a; --ink-soft: #595959;
+    --label-bg: #dce6f1; --label-bg-strong: #c5d9ed;
+    --accent: #4472c4; --accent-deep: #2f5597;
+    --success-bg:#c6efce; --success:#006100; --success-line:#9fcfa8;
+    --danger-bg:#ffc7ce; --danger:#9c0006; --danger-line:#e6a4ab;
+    --warn-bg:#ffeb9c; --warn:#9c6500; --warn-line:#e3cf7a;
+    --header-gray: #f1f1f1; --header-gray-line: #c9c9c9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Carlito', Calibri, Arial, sans-serif; background: var(--page-bg); color: var(--ink); font-size: 14px; line-height: 1.5; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  .sheet-wrap { max-width: 1000px; margin: 22px auto 40px; background: var(--sheet-bg); border: 1px solid #8c8c8c; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+
+  /* ── Masthead ── */
+  .masthead { padding: 20px 28px 14px; border-bottom: 2px solid var(--grid); position: relative; }
+  .masthead-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; color: var(--accent-deep); margin-bottom: 6px; text-transform: uppercase; }
+  .masthead h1 { font-weight: 700; font-size: 23px; color: var(--ink); }
+  .masthead p { font-size: 13px; color: var(--ink-soft); margin-top: 5px; max-width: 600px; }
+
+  .main { padding: 0 28px 30px; }
+
+  /* ── Section title bars (mimic a filled/merged Excel header row) ── */
+  .section-titlebar { display: flex; align-items: center; gap: 10px; margin: 22px 0 14px; background: var(--label-bg-strong); border: 1px solid var(--grid); padding: 7px 12px; }
+  .section-titlebar .num { font-weight: 700; font-size: 13px; color: var(--accent-deep); }
+  .section-titlebar h2 { font-weight: 700; font-size: 14.5px; color: var(--ink); text-transform: uppercase; letter-spacing: 0.02em; }
+  .section-titlebar .sub { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--ink-soft); text-transform: none; }
+
+  /* ── Generic Excel-grid building blocks ── */
+  .xl-row { display: flex; border-top: 1px solid var(--grid); border-left: 1px solid var(--grid); }
+  .xl-col { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--grid); border-bottom: 1px solid var(--grid); min-width: 0; }
+  .xl-col.narrow { flex: 0 0 130px; }
+  .xl-col.wide2 { flex: 2; }
+  .xl-lab { background: var(--label-bg); font-size: 11px; font-weight: 700; color: var(--ink); padding: 5px 9px; border-bottom: 1px solid var(--grid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xl-lab .req { color: var(--danger); }
+  .xl-lab .opt { font-weight: 400; color: var(--ink-soft); text-transform: none; }
+  .xl-val { background: #fff; padding: 5px 9px; flex: 1; display: flex; align-items: center; }
+  .xl-val input, .xl-val select { width: 100%; border: 1px solid #d9d8df; background: #f6f5f9; border-radius: 6px; font-family: 'Carlito', Calibri, sans-serif; font-size: 13.5px; color: var(--ink); outline: none; padding: 7px 10px; }
+  .xl-val input:focus, .xl-val select:focus { border-color: var(--accent); background: #fff; }
+  .xl-val select { cursor: pointer; }
+  .xl-val.computed input, .xl-val.computed select { background: transparent; border: none; padding: 0; }
+  .other-field { display: block; }
+  .other-field select { margin-bottom: 0; }
+  .other-field input { margin-top: 7px; }
+  .xl-val.computed { background: var(--label-bg); }
+  .xl-val.computed .computed-out { font-weight: 700; color: var(--accent-deep); }
+  .xl-val.stack { flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; }
+  .tm-note { font-size: 10px; font-weight: 700; color: var(--warn); line-height: 1.3; }
+  .xl-val.computed.flag .computed-out { color: var(--danger); }
+
+  @media (max-width: 680px) {
+    .xl-row { flex-direction: column; border-left: none; }
+    .xl-col { border-left: 1px solid var(--grid); }
+    .xl-col.narrow { flex: 1; }
+  }
+
+  .foot-note { font-size: 12px; color: var(--ink-soft); line-height: 1.65; margin: 12px 0 4px; padding: 9px 12px; border: 1px solid var(--header-gray-line); background: #fafafa; }
+  .foot-note strong { color: var(--ink); }
+
+  /* ── Experience blocks ── */
+  .exp-block { display: flex; border: 1px solid var(--grid); margin-bottom: 18px; }
+  .exp-block.has-overlap { outline: 2px solid var(--warn); outline-offset: -1px; }
+  .exp-num-col { flex: 0 0 34px; background: var(--header-gray); border-right: 1px solid var(--grid); display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; font-weight: 700; font-size: 15px; color: var(--ink); }
+  .exp-main { flex: 1; min-width: 0; }
+  .exp-head-row { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding: 6px 10px; background: var(--header-gray); border-bottom: 1px solid var(--grid); }
+  .overlap-badge { font-size: 10.5px; font-weight: 700; color: var(--warn); background: var(--warn-bg); border: 1px solid var(--warn-line); padding: 2px 8px; }
+  .remove-btn { font-size: 11px; font-weight: 700; color: var(--ink-soft); background: #fff; border: 1px solid #8c8c8c; cursor: pointer; padding: 3px 9px; font-family: 'Carlito', sans-serif; }
+  .remove-btn:hover { color: var(--danger); border-color: var(--danger); }
+  .exp-fields { padding: 10px; }
+
+  .approach-row .xl-val { padding: 6px 9px; display: block; }
+  .approach-toggle { display: flex; width: 100%; }
+  .approach-btn { flex: 1; padding: 5px 6px; border: 1px solid #8c8c8c; background: #fff; font-family: 'Carlito', sans-serif; font-size: 12px; font-weight: 700; color: var(--ink-soft); cursor: pointer; }
+  .approach-btn + .approach-btn { border-left: none; }
+  .approach-btn.selected { background: var(--accent); color: #fff; border-color: var(--accent-deep); }
+  .approach-btn:hover:not(.selected) { background: var(--label-bg); }
+  .approach-warn { font-size: 11px; color: var(--danger); margin-top: 5px; font-weight: 700; }
+
+  .ref-panel { border: 1px solid var(--header-gray-line); background: #fafafa; padding: 10px 12px; margin: 10px 0; font-size: 12px; }
+  .ref-panel-title { font-size: 10.5px; font-weight: 700; color: var(--accent-deep); margin-bottom: 7px; text-transform: uppercase; }
+  .ref-row { margin-bottom: 4px; line-height: 1.55; color: var(--ink-soft); }
+  .ref-row b { color: var(--ink); font-weight: 700; }
+  .ref-note { font-size: 11px; color: #8c8c8c; margin-top: 5px; line-height: 1.5; }
+
+  .desc-grid { display: flex; border: 1px solid var(--grid); margin-top: 10px; }
+  .desc-fields { flex: 1; min-width: 0; }
+  .desc-field .xl-lab { border-bottom: 1px solid var(--grid); }
+  .desc-field textarea { width: 100%; border: none; background: #fff; padding: 9px; font-family: 'Carlito', Calibri, sans-serif; font-size: 13.5px; color: var(--ink); outline: none; resize: vertical; min-height: 160px; line-height: 1.6; display: block; }
+  .desc-field textarea:focus { background: #fcfcf6; }
+  .wc-col { flex: 0 0 86px; border-left: 1px solid var(--grid); background: var(--label-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8px 4px; }
+  .wc-col .wc-title { font-size: 9.5px; font-weight: 700; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 6px; }
+  .wc-col .wc-num { font-size: 22px; font-weight: 700; line-height: 1; }
+  .wc-col .wc-status { font-size: 9.5px; margin-top: 6px; font-weight: 700; line-height: 1.3; }
+
+  .add-exp-btn { width: 100%; padding: 10px; border: 1px solid #8c8c8c; background: var(--header-gray); font-family: 'Carlito', sans-serif; font-size: 12.5px; color: var(--ink); cursor: pointer; margin-bottom: 18px; font-weight: 700; }
+  .add-exp-btn:hover { background: var(--label-bg); }
+
+  .overlap-panel { border: 1px solid var(--warn-line); background: var(--warn-bg); padding: 12px 14px; margin-bottom: 18px; }
+  .overlap-panel-title { font-weight: 700; font-size: 12.5px; color: var(--warn); margin-bottom: 8px; text-transform: uppercase; }
+  .overlap-row { font-size: 13px; color: var(--ink); padding: 6px 0; border-top: 1px solid rgba(0,0,0,0.12); }
+  .overlap-row:first-child { border-top: none; }
+  .overlap-tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 1px 7px; margin-left: 6px; }
+  .overlap-tag.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-line); }
+  .overlap-tag.danger { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-line); }
+  .overlap-detail { font-size: 12px; color: var(--ink-soft); margin-top: 3px; }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; justify-content: flex-end; align-items: center; margin-top: 6px; margin-bottom: 6px; }
+  .btn-primary { background: var(--accent); color: #fff; border: 1px solid var(--accent-deep); padding: 10px 20px; font-family: 'Carlito', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-primary:hover { background: var(--accent-deep); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .spinner { width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Review output ── */
+  .review-loading { text-align: center; padding: 46px 18px; color: var(--ink-soft); }
+  .review-loading .big-spinner { width: 26px; height: 26px; border: 3px solid #ddd; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 12px; }
+  .empty-state { text-align: center; padding: 30px 18px; color: #8c8c8c; font-size: 13px; }
+
+  .verdict-bar { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border: 1px solid var(--grid); margin-bottom: 16px; font-size: 13.5px; background: #fff; }
+  .verdict-bar .v-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); }
+  .verdict-bar .v-value { font-weight: 700; font-size: 15px; }
+  .verdict-go .v-value { color: var(--success); }
+  .verdict-revise .v-value { color: var(--warn); }
+  .verdict-notready .v-value { color: var(--danger); }
+  .verdict-bar .risk-tag { margin-left: auto; font-size: 11px; font-weight: 700; padding: 3px 10px; border: 1px solid; }
+
+  .rv-block { border: 1px solid var(--header-gray-line); border-top: none; padding: 14px 16px; }
+  .rv-block:first-of-type { border-top: 1px solid var(--header-gray-line); }
+  .rv-block-title { background: var(--label-bg); margin: -14px -16px 12px; padding: 6px 14px; font-weight: 700; font-size: 12.5px; color: var(--ink); border-bottom: 1px solid var(--grid); text-transform: uppercase; }
+  .summary-text { font-size: 13.5px; line-height: 1.7; color: var(--ink); }
+
+  .score-table { width: 100%; border-collapse: collapse; }
+  .score-table tr { border-bottom: 1px solid var(--header-gray-line); }
+  .score-table td { padding: 7px 4px; font-size: 13px; vertical-align: middle; }
+  .score-table td.s-label { color: var(--ink-soft); width: 30%; font-weight: 700; }
+  .score-table td.s-num { width: 44px; font-weight: 700; font-size: 14px; color: var(--ink); text-align: right; padding-right: 10px; }
+  .score-bar-wrap { height: 12px; background: #ececec; border: 1px solid #c9c9c9; }
+  .score-bar-fill { height: 100%; background: var(--accent); }
+
+  .bullet-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--grid); }
+  .bullet-cols > div { border-right: 1px solid var(--grid); padding: 10px 12px; }
+  .bullet-cols > div:last-child { border-right: none; }
+  @media (max-width: 560px) { .bullet-cols { grid-template-columns: 1fr; } .bullet-cols > div { border-right: none; border-bottom: 1px solid var(--grid); } }
+  .bullet-list { list-style: none; }
+  .bullet-list li { font-size: 12.5px; padding: 5px 0 5px 18px; position: relative; color: var(--ink); border-bottom: 1px solid #eee; line-height: 1.55; }
+  .bullet-list li:last-child { border-bottom: none; }
+  .bullet-list li::before { position: absolute; left: 0; top: 5px; font-size: 12px; font-weight: 700; }
+  .bullet-list.strengths li::before { content: '+'; color: var(--success); }
+  .bullet-list.gaps li::before { content: '\2013'; color: var(--warn); }
+  .col-head { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 7px; }
+
+  .proj-feedback { border: 1px solid var(--header-gray-line); margin-bottom: 8px; }
+  .proj-feedback .proj-title { font-weight: 700; font-size: 12.5px; color: var(--ink); padding: 6px 10px; background: var(--header-gray); border-bottom: 1px solid var(--header-gray-line); display: flex; justify-content: space-between; }
+  .proj-feedback .proj-score { font-weight: 700; }
+  .proj-feedback .proj-body { font-size: 12.5px; line-height: 1.65; color: var(--ink-soft); padding: 8px 10px 0; }
+  .improved-wrap { background: var(--label-bg); border-top: 1px solid var(--header-gray-line); padding: 8px 10px; font-size: 12.5px; line-height: 1.6; color: var(--ink); margin-top: 8px; }
+  .improved-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; color: var(--accent-deep); margin-bottom: 3px; }
+
+  .eligibility-flag { border: 1px solid; padding: 9px 12px; font-size: 12.5px; margin-bottom: 16px; line-height: 1.55; }
+  .print-btn { background: #fff; border: 1px solid #8c8c8c; color: var(--ink); font-family: 'Carlito', sans-serif; font-size: 12px; font-weight: 700; padding: 5px 12px; cursor: pointer; }
+  .print-btn:hover { background: var(--label-bg); border-color: var(--accent); }
+  .print-text-clone { display: none; }
+
+  /* ══════════════════ PRINT ══════════════════ */
+  @media print {
+    @page { margin: 0.55in; }
+    .no-print { display: none !important; }
+    body { background: #fff; font-size: 11.5px; }
+    .sheet-wrap { max-width: 100%; margin: 0; border: none; box-shadow: none; }
+    .masthead { padding: 0 0 10px; }
+    .api-strip { display: none; }
+    .main { padding: 0; }
+
+    .section-titlebar { break-inside: avoid; break-after: avoid; }
+    #sec-experience, #sec-review { break-before: page; }
+
+    .xl-row, .verdict-bar, .rv-block, .proj-feedback, .overlap-panel, .foot-note, .eligibility-flag { break-inside: avoid; }
+    .exp-head-row, .exp-fields > .xl-row:first-child { break-after: avoid; }
+
+    /* Flex layouts don't paginate reliably in print — switch the multi-page-capable
+       containers to block layout so content flows across page breaks instead of clipping. */
+    .exp-block { display: block !important; }
+    .exp-num-col { display: block !important; width: auto !important; padding: 4px 10px !important; border-right: none !important; border-bottom: 1px solid var(--grid); background: var(--header-gray); }
+    .exp-num-col::before { content: "Project "; font-weight: 400; }
+    .desc-grid { display: block !important; border: 1px solid var(--grid); }
+    .wc-col { display: block !important; flex: none; width: auto !important; border-left: none !important; border-top: 1px solid var(--grid); text-align: left !important; padding: 6px 9px !important; }
+    .wc-col .wc-title { display: inline; margin-bottom: 0; }
+    .wc-col .wc-title br { display: none; }
+    .wc-col .wc-num { display: inline; font-size: 13px; margin-left: 6px; }
+    .wc-col .wc-status { display: inline; margin-left: 6px; }
+
+    .add-exp-btn, .btn-row, .remove-btn, .approach-warn { display: none !important; }
+    .exp-head-row { padding: 4px 10px; }
+
+    input, select, textarea { color: #000 !important; }
+    input::placeholder, textarea::placeholder { color: transparent !important; }
+    select { -webkit-print-color-adjust: exact; print-color-adjust: exact; appearance: none; -webkit-appearance: none; border: none !important; }
+    textarea, .desc-field textarea { resize: none !important; overflow: visible !important; border: none !important; min-height: 0 !important; }
+    .print-text-clone { display: block !important; }
+    .approach-btn:not(.selected) { display: none !important; }
+    .approach-btn.selected { width: 100%; background: #fff !important; color: #000 !important; border: 1px solid #000 !important; }
+
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sheet-wrap">
+
+  <div class="masthead">
+    <div class="masthead-eyebrow">PMP Certification &middot; Experience Worksheet</div>
+    <h1>PMP Application Reviewer</h1>
+    <p>Check your project experience against PMI's audit criteria before you submit — including automatic overlap detection across concurrent projects.</p>
+  </div>
+
+  <main class="main">
+
+    <section id="sec-eligibility">
+      <div class="section-titlebar"><span class="num">1</span><h2>Eligibility &amp; Months Tracking</h2></div>
+
+      <div class="xl-row">
+        <div class="xl-col wide2"><div class="xl-lab">Name</div><div class="xl-val"><input type="text" id="full_name" placeholder="Your name" /></div></div>
+        <div class="xl-col wide2"><div class="xl-lab">Bachelor's Degree or Higher</div><div class="xl-val">
+          <select id="edu" onchange="calcEligibility()">
+            <option value="">Select…</option>
+            <option value="High School">High School</option>
+            <option value="Associates">Associates</option>
+            <option value="Bachelors +">Bachelors +</option>
+          </select>
+        </div></div>
+        <div class="xl-col narrow"><div class="xl-lab">Training Hrs</div><div class="xl-val"><input type="text" class="tnum" id="training_hrs" placeholder="35" oninput="calcEligibility()" /></div></div>
+      </div>
+
+      <div class="xl-row">
+        <div class="xl-col"><div class="xl-lab">Months of Experience</div><div class="xl-val computed"><span class="computed-out tnum" id="months_experience_out">0</span></div></div>
+        <div class="xl-col"><div class="xl-lab">Overlapping Months</div><div class="xl-val computed"><span class="computed-out tnum" id="overlap_months_out">0</span></div></div>
+        <div class="xl-col"><div class="xl-lab">Net Qualifying Months</div><div class="xl-val computed"><span class="computed-out tnum" id="net_months_out">0</span></div></div>
+      </div>
+
+      <div class="xl-row">
+        <div class="xl-col"><div class="xl-lab">Months Needed</div><div class="xl-val computed"><span class="computed-out tnum" id="months_required_out">—</span></div></div>
+        <div class="xl-col"><div class="xl-lab">Remaining Months Needed</div><div class="xl-val computed" id="remaining_wrap"><span class="computed-out tnum" id="months_remaining_out">—</span></div></div>
+        <div class="xl-col"></div>
+      </div>
+
+      <p class="foot-note">
+        <strong>PMI requirements:</strong> Bachelors + = 36 non-overlapping months leading projects; Associates = 48 months; High School = 60 months. All applicants need 35 hours of PM education or training.
+        <strong>Months of Experience</strong> is the sum of Total Months across every project below. <strong>Overlapping Months</strong> is detected automatically from your project dates — PMI allows concurrent projects, but overlapping hours may only be counted once.
+      </p>
+    </section>
+
+    <section id="sec-experience">
+      <div class="section-titlebar"><span class="num">2</span><h2>Project Descriptions</h2><span class="sub" id="exp-count-sub"></span></div>
+
+      <div id="overlap-alert" style="display:none;"></div>
+      <div id="exp-list"></div>
+      <button class="add-exp-btn" onclick="addExp()">+ Add Project Experience</button>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="reviewBtn" onclick="runReview()">
+          <span id="reviewBtnLabel">Get AI Review</span>
+          <span id="reviewBtnIcon">&rarr;</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="sec-review">
+      <div class="section-titlebar"><span class="num">3</span><h2>Review</h2><button class="print-btn no-print" style="margin-left:auto;" onclick="window.print()">&#128424; Print</button></div>
+      <div id="review-output">
+        <div class="empty-state">
+          <p>Complete Section 2 and click <strong>Get AI Review</strong> to see your results here.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+</div>
+
+<script>
+let experiences = [];
+let isReviewing = false;
+
+const JOB_TITLES = ['Project Manager', 'Project Coordinator', 'Project Expediter'];
+
+const FUNCTIONAL_AREAS = ['Customer Service', 'Finance', 'Human Resources', 'IT or IS', 'Marketing', 'Operations',
+  'PM Dept or PMO (Project Management Office)', 'Research/R&D', 'Sales', 'Training/Education', 'Not Applicable', 'Other'];
+
+const ORG_FOCUS_OPTIONS = ['Aerospace', 'Armed Forces', 'Automotive', 'Construction', 'Consulting', 'Energy',
+  'Financial Services', 'Food and Beverage', 'Government', 'Healthcare', 'IT (Information Technology)', 'Legal',
+  'Manufacturing', 'Mining', 'Pharmaceutical', 'Telecom', 'Training/Education', 'Non or unemployed', 'Not Applicable', 'Other'];
+
+
+// ── Date parsing ──
+function parseDate(str) {
+  if (!str || !str.trim()) return null;
+  const s = str.trim();
+  let m, y;
+  if (/^\d{1,2}\/\d{4}$/.test(s)) { [m, y] = s.split('/').map(Number); }
+  else if (/^\d{4}-\d{1,2}$/.test(s)) { [y, m] = s.split('-').map(Number); }
+  else if (/^\d{4}$/.test(s)) { y = Number(s); m = 1; }
+  else { return null; }
+  if (m < 1 || m > 12 || y < 1980 || y > 2030) return null;
+  return { y, m };
+}
+function dateToMonths(d) { return d ? d.y * 12 + d.m : null; }
+function monthsToStr(n) { return Math.round(n) + ' month' + (Math.round(n) !== 1 ? 's' : ''); }
+
+// Mirrors the worksheet's Total Months formula: DATEDIF(start,end,"M")+1
+function computeTotalMonths(exp) {
+  const s = dateToMonths(parseDate(exp.start));
+  const e = dateToMonths(parseDate(exp.end));
+  if (!s || !e || e < s) return 0;
+  return e - s + 1;
+}
+
+// Walks every project in chronological start order and credits each calendar month
+// to whichever project claimed it FIRST. Later projects that share a month with an
+// earlier one get that month deducted from their own count — PMI only allows a given
+// month to count once toward total experience, even when projects run concurrently.
+function computeMonthAttribution() {
+  const ranges = experiences.map((exp, i) => {
+    const s = dateToMonths(parseDate(exp.start));
+    const e = dateToMonths(parseDate(exp.end));
+    return { i, start: s, end: (s && e && e >= s) ? e : null };
+  }).filter(r => r.start && r.end);
+
+  ranges.sort((a, b) => (a.start - b.start) || (a.end - b.end) || (a.i - b.i));
+
+  const claimed = new Set();
+  const counted = {};
+  ranges.forEach(r => {
+    let n = 0;
+    for (let m = r.start; m <= r.end; m++) {
+      if (!claimed.has(m)) { claimed.add(m); n++; }
+    }
+    counted[r.i] = n;
+  });
+
+  experiences.forEach((_, i) => { if (!(i in counted)) counted[i] = 0; });
+  return counted;
+}
+
+// ── Eligibility / months tracking (mirrors the worksheet's header formulas) ──
+function calcEligibility() {
+  const edu = document.getElementById('edu').value;
+  const totalClaimed = experiences.reduce((sum, exp) => sum + computeTotalMonths(exp), 0);
+  const counted = computeMonthAttribution();
+  const net = Object.values(counted).reduce((sum, n) => sum + n, 0);
+  const overlapMonths = Math.max(0, totalClaimed - net);
+
+  let required = null;
+  if (edu === 'High School') required = 60;
+  else if (edu === 'Associates') required = 48;
+  else if (edu === 'Bachelors +') required = 36;
+
+  document.getElementById('months_experience_out').textContent = totalClaimed;
+  document.getElementById('overlap_months_out').textContent = overlapMonths;
+  document.getElementById('net_months_out').textContent = net;
+  document.getElementById('months_required_out').textContent = required !== null ? required : '—';
+
+  const remainingEl = document.getElementById('months_remaining_out');
+  const remainingWrap = document.getElementById('remaining_wrap');
+  if (required !== null) {
+    const remaining = Math.max(0, required - net);
+    remainingEl.textContent = remaining;
+    remainingWrap.classList.toggle('flag', remaining > 0);
+  } else {
+    remainingEl.textContent = '—';
+    remainingWrap.classList.remove('flag');
+  }
+}
+
+// ── Overlap detection ──
+function detectOverlaps() {
+  const results = [];
+  for (let i = 0; i < experiences.length; i++) {
+    for (let j = i + 1; j < experiences.length; j++) {
+      const a = experiences[i], b = experiences[j];
+      const aStart = dateToMonths(parseDate(a.start));
+      const aEnd   = dateToMonths(parseDate(a.end));
+      const bStart = dateToMonths(parseDate(b.start));
+      const bEnd   = dateToMonths(parseDate(b.end));
+      if (!aStart || !aEnd || !bStart || !bEnd) continue;
+      const overlapStart = Math.max(aStart, bStart);
+      const overlapEnd   = Math.min(aEnd, bEnd);
+      if (overlapEnd >= overlapStart) {
+        const overlapMonths = overlapEnd - overlapStart + 1;
+        const hoursI = parseFloat(a.hours) || 0;
+        const hoursJ = parseFloat(b.hours) || 0;
+        const combinedHoursPerMonth = overlapMonths > 0 ? ((hoursI + hoursJ) / overlapMonths) : 0;
+        const auditRisk = combinedHoursPerMonth > 160 ? 'High' : combinedHoursPerMonth > 80 ? 'Medium' : 'Low';
+        results.push({ i, j, overlapMonths, hoursI, hoursJ, auditRisk, combinedHoursPerMonth });
+      }
+    }
+  }
+  return results;
+}
+
+function checkOverlaps() {
+  const overlaps = detectOverlaps();
+  const alertEl = document.getElementById('overlap-alert');
+  const counted = computeMonthAttribution();
+
+  document.querySelectorAll('.exp-block').forEach((el, idx) => {
+    const inOverlap = overlaps.some(o => o.i === idx || o.j === idx);
+    el.classList.toggle('has-overlap', inOverlap);
+    const badge = el.querySelector('.overlap-badge');
+    if (badge) badge.style.display = inOverlap ? 'inline-block' : 'none';
+    const raw = computeTotalMonths(experiences[idx]);
+    const tm = document.getElementById('tm-' + idx);
+    if (tm) tm.textContent = raw;
+    const note = document.getElementById('tm-note-' + idx);
+    if (note) {
+      const c = counted[idx] || 0;
+      note.textContent = (raw > 0 && c < raw) ? `Only ${c} of ${raw} counted (overlap)` : '';
+    }
+  });
+
+  calcEligibility();
+
+  if (overlaps.length === 0) { alertEl.style.display = 'none'; return; }
+
+  alertEl.style.display = 'block';
+  let rows = overlaps.map(o => {
+    const nameI = experiences[o.i].title || `Project ${o.i+1}`;
+    const nameJ = experiences[o.j].title || `Project ${o.j+1}`;
+    const tagClass = o.auditRisk === 'High' ? 'danger' : 'warn';
+    let detail = `Overlap: ${monthsToStr(o.overlapMonths)}.`;
+    if (o.hoursI || o.hoursJ) detail += ` Combined hours claimed (${Math.round(o.hoursI + o.hoursJ)} hrs) during overlap — ensure hours are not double-counted.`;
+    return `<div class="overlap-row">
+      <strong>${nameI}</strong> &amp; <strong>${nameJ}</strong> overlap by ${monthsToStr(o.overlapMonths)}
+      <span class="overlap-tag ${tagClass}">${o.auditRisk} risk</span>
+      <div class="overlap-detail">${detail}</div>
+    </div>`;
+  }).join('');
+
+  alertEl.innerHTML = `<div class="overlap-panel">
+    <div class="overlap-panel-title">Concurrent project overlap detected</div>
+    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:8px;line-height:1.55;">
+      PMI allows concurrent projects, but hours during overlapping periods may only be counted once. The Overlapping Months figure above has been subtracted from Months of Experience.
+    </p>
+    ${rows}
+  </div>`;
+}
+
+// ── Experience management ──
+function addExp() {
+  experiences.push({ title:'', functional_area:'', functional_area_other:'', team_size:'', start:'', end:'', organization:'', org_focus:'', org_focus_other:'', budget:'', job_title:'', hours:'', approach:'', description:'' });
+  renderExpList();
+  setTimeout(() => {
+    const blocks = document.querySelectorAll('.exp-block');
+    if (blocks.length) blocks[blocks.length-1].scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 80);
+}
+function removeExp(i) { experiences.splice(i, 1); renderExpList(); checkOverlaps(); }
+function updateExp(i, field, val) {
+  experiences[i][field] = val;
+  if (field === 'start' || field === 'end' || field === 'hours') checkOverlaps();
+  if (field === 'description') updateWordCount(i);
+}
+function wordCount(exp) {
+  const text = (exp.description || '').trim();
+  return text ? text.split(/\s+/).length : 0;
+}
+function updateWordCount(i) {
+  const el = document.getElementById('wc-' + i);
+  if (!el) return;
+  const count = wordCount(experiences[i]);
+  let color, status;
+  if (count <= 200) { color = 'var(--danger)'; status = `Need ${200-count} more`; }
+  else if (count <= 299) { color = 'var(--warn)'; status = `Need ${300-count} more`; }
+  else if (count <= 400) { color = 'var(--success)'; status = `In range`; }
+  else if (count <= 500) { color = 'var(--warn)'; status = `${count-400} past ideal`; }
+  else { color = 'var(--danger)'; status = `${count-500} over`; }
+  el.querySelector('.wc-num').textContent = count;
+  el.querySelector('.wc-num').style.color = color;
+  el.querySelector('.wc-status').textContent = status;
+  el.querySelector('.wc-status').style.color = color;
+}
+function setApproach(i, approach) { experiences[i].approach = approach; renderExpList(); }
+function updateExpSelect(i, field, val) { experiences[i][field] = val; renderExpList(); }
+
+function renderExpList() {
+  const list = document.getElementById('exp-list');
+  document.getElementById('exp-count-sub').textContent = experiences.length ? `${experiences.length} project${experiences.length!==1?'s':''}` : '';
+  if (experiences.length === 0) {
+    list.innerHTML = `<div class="empty-state"><p>No projects added yet. Click below to add your first project experience.</p></div>`;
+    calcEligibility();
+    return;
+  }
+  list.innerHTML = experiences.map((exp, i) => `
+    <div class="exp-block" id="expblock-${i}">
+      <div class="exp-num-col">${i+1}</div>
+      <div class="exp-main">
+        <div class="exp-head-row">
+          <span class="overlap-badge" style="display:none;">Overlap detected</span>
+          <button class="remove-btn" onclick="removeExp(${i})">Remove</button>
+        </div>
+        <div class="exp-fields">
+
+          <div class="xl-row">
+            <div class="xl-col" style="flex:2;"><div class="xl-lab">Project Title</div><div class="xl-val"><input type="text" value="${esc(exp.title)}" oninput="updateExp(${i},'title',this.value)" placeholder="e.g. Zero Trust Architecture Implementation" /></div></div>
+            <div class="xl-col" style="flex:2;"><div class="xl-lab">Functional Reporting Area</div><div class="xl-val other-field">
+              <select onchange="updateExpSelect(${i},'functional_area',this.value)">
+                <option value="">Select…</option>
+                ${FUNCTIONAL_AREAS.map(a => `<option value="${a}"${exp.functional_area===a?' selected':''}>${a}</option>`).join('')}
+              </select>
+              ${exp.functional_area==='Other' ? `<input type="text" value="${esc(exp.functional_area_other)}" oninput="updateExp(${i},'functional_area_other',this.value)" placeholder="Please specify" />` : ''}
+            </div></div>
+            <div class="xl-col narrow"><div class="xl-lab">Team Size</div><div class="xl-val"><input type="text" class="tnum" value="${esc(exp.team_size)}" oninput="updateExp(${i},'team_size',this.value)" placeholder="e.g. 12" /></div></div>
+          </div>
+
+          <div class="xl-row">
+            <div class="xl-col"><div class="xl-lab">Start Date</div><div class="xl-val"><input type="text" class="tnum" value="${esc(exp.start)}" oninput="updateExp(${i},'start',this.value)" placeholder="01/2022" /></div></div>
+            <div class="xl-col"><div class="xl-lab">End Date</div><div class="xl-val"><input type="text" class="tnum" value="${esc(exp.end)}" oninput="updateExp(${i},'end',this.value)" placeholder="06/2024" /></div></div>
+            <div class="xl-col"><div class="xl-lab">Total Months</div><div class="xl-val computed stack"><span class="computed-out tnum" id="tm-${i}">${computeTotalMonths(exp)}</span><span class="tm-note" id="tm-note-${i}"></span></div></div>
+            <div class="xl-col"><div class="xl-lab">Hours Leading</div><div class="xl-val"><input type="text" class="tnum" value="${esc(exp.hours)}" oninput="updateExp(${i},'hours',this.value)" placeholder="500" /></div></div>
+          </div>
+
+          <div class="xl-row">
+            <div class="xl-col" style="flex:2;"><div class="xl-lab">Organization</div><div class="xl-val"><input type="text" value="${esc(exp.organization)}" oninput="updateExp(${i},'organization',this.value)" placeholder="Company / agency name" /></div></div>
+            <div class="xl-col" style="flex:2;"><div class="xl-lab">Organization Primary Focus</div><div class="xl-val other-field">
+              <select onchange="updateExpSelect(${i},'org_focus',this.value)">
+                <option value="">Select…</option>
+                ${ORG_FOCUS_OPTIONS.map(a => `<option value="${a}"${exp.org_focus===a?' selected':''}>${a}</option>`).join('')}
+              </select>
+              ${exp.org_focus==='Other' ? `<input type="text" value="${esc(exp.org_focus_other)}" oninput="updateExp(${i},'org_focus_other',this.value)" placeholder="Please specify" />` : ''}
+            </div></div>
+            <div class="xl-col"><div class="xl-lab">Budget</div><div class="xl-val"><input type="text" value="${esc(exp.budget)}" oninput="updateExp(${i},'budget',this.value)" placeholder="e.g. $2.4M" /></div></div>
+          </div>
+
+          <div class="xl-row">
+            <div class="xl-col" style="flex:2;"><div class="xl-lab">Job Title</div><div class="xl-val">
+              <select onchange="updateExp(${i},'job_title',this.value)">
+                <option value="">Select…</option>
+                ${JOB_TITLES.map(j => `<option value="${j}"${exp.job_title===j?' selected':''}>${j}</option>`).join('')}
+              </select>
+            </div></div>
+            <div class="xl-col" style="flex:2;">
+              <div class="xl-lab">Approach Methodology <span class="req">*</span></div>
+              <div class="xl-val" style="padding:5px;">
+                <div class="approach-toggle">
+                  <button class="approach-btn${exp.approach==='Predictive'?' selected':''}" onclick="setApproach(${i},'Predictive')">Predictive</button>
+                  <button class="approach-btn${exp.approach==='Agile'?' selected':''}" onclick="setApproach(${i},'Agile')">Agile</button>
+                  <button class="approach-btn${exp.approach==='Hybrid'?' selected':''}" onclick="setApproach(${i},'Hybrid')">Hybrid</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          ${!exp.approach ? '<div class="approach-warn">Approach Methodology is required before submitting for review</div>' : ''}
+
+          ${exp.approach === 'Agile' || exp.approach === 'Hybrid' ? `
+          <div class="ref-panel">
+            <div class="ref-panel-title">Agile vocabulary reference</div>
+            <div class="ref-row"><b>Roles:</b> Scrum Master, Product Owner, Agile Team Facilitator</div>
+            <div class="ref-row"><b>Artifacts:</b> Product Backlog, Sprint Backlog, Kanban Board, Burndown/Burnup Chart</div>
+            <div class="ref-row"><b>Events:</b> Sprint Planning, Daily Scrum, Sprint Review, Retrospective</div>
+            <div class="ref-row"><b>Practices:</b> Iterative development, Incremental delivery, Continuous integration, Adaptive planning</div>
+            <div class="ref-note">Use these terms naturally in your Project Description where they genuinely apply — the AI reviewer checks for their presence.</div>
+          </div>` : ''}
+
+          ${exp.approach === 'Predictive' ? `
+          <div class="ref-panel">
+            <div class="ref-panel-title">Predictive (waterfall) vocabulary reference</div>
+            <div class="ref-row"><b>Process groups:</b> Initiating, Planning, Executing, Monitoring &amp; Controlling, Closing</div>
+            <div class="ref-row"><b>Knowledge areas:</b> Scope, Schedule, Cost, Risk, Stakeholder, Quality Management</div>
+            <div class="ref-note">Structure your Project Description around the five process groups above; reference PMBOK knowledge areas where relevant.</div>
+          </div>` : ''}
+
+          <div class="desc-grid">
+            <div class="desc-fields">
+              <div class="desc-field">
+                <div class="xl-lab">Project Description <span class="opt">(200 to 500 words)</span></div>
+                <textarea oninput="updateExp(${i},'description',this.value)" placeholder="Describe the project objective, your specific role and leadership actions, the outcomes achieved, and how the project followed the process groups / agile practices noted above.">${esc(exp.description||'')}</textarea>
+              </div>
+            </div>
+            <div class="wc-col" id="wc-${i}">
+              <div class="wc-title">Word<br>Count</div>
+              <div class="wc-num tnum">0</div>
+              <div class="wc-status">Need 200 more</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `).join('');
+  experiences.forEach((_, i) => updateWordCount(i));
+  checkOverlaps();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildOverlapSummary() {
+  const overlaps = detectOverlaps();
+  if (overlaps.length === 0) return 'No date overlaps detected between projects.';
+  return overlaps.map(o => {
+    const nameI = experiences[o.i].title || `Project ${o.i+1}`;
+    const nameJ = experiences[o.j].title || `Project ${o.j+1}`;
+    return `"${nameI}" and "${nameJ}" overlap by ${monthsToStr(o.overlapMonths)}. Combined hours in overlap period: ${Math.round(o.hoursI + o.hoursJ)}. Calculated audit risk: ${o.auditRisk}.`;
+  }).join(' | ');
+}
+
+// ── Run review ──
+async function runReview() {
+  if (isReviewing) return;
+  if (experiences.length === 0) { alert('Please add at least one project experience before reviewing.'); document.getElementById('sec-experience').scrollIntoView({behavior:'smooth'}); return; }
+  const missingApproach = experiences.filter(e => !e.approach);
+  if (missingApproach.length > 0) {
+    alert('Please select an Approach Methodology (Predictive, Agile, or Hybrid) for every project before running the review.');
+    document.getElementById('sec-experience').scrollIntoView({behavior:'smooth'});
+    return;
+  }
+
+  isReviewing = true;
+  document.getElementById('sec-review').scrollIntoView({behavior:'smooth'});
+  const btn = document.getElementById('reviewBtn');
+  if (btn) { btn.disabled = true; document.getElementById('reviewBtnLabel').textContent = 'Reviewing…'; document.getElementById('reviewBtnIcon').innerHTML = '<span class="spinner"></span>'; }
+  document.getElementById('review-output').innerHTML = `<div class="review-loading"><div class="big-spinner"></div><p>Analyzing your PMP application experience…<br><span style="font-size:12px;color:#8c8c8c;">This takes about 15–20 seconds</span></p></div>`;
+
+  const eduLabel = document.getElementById('edu').value || 'Not specified';
+  const hrs = document.getElementById('training_hrs').value || 'Not provided';
+  const months = document.getElementById('months_experience_out').textContent;
+  const overlap = document.getElementById('overlap_months_out').textContent;
+  const net = document.getElementById('net_months_out').textContent;
+  const overlapSummary = buildOverlapSummary();
+  const overlapData = detectOverlaps();
+  const monthAttribution = computeMonthAttribution();
+
+  const systemPrompt = `You are a senior PMP application reviewer with 15+ years of experience helping candidates pass PMI's audit process. You know the PMP Examination Content Outline deeply and understand exactly what PMI auditors look for.
+
+Return ONLY valid JSON. No markdown, no code fences. Use this exact structure:
+{
+  "eligibility_ok": true,
+  "eligibility_notes": "brief note on hour/month requirements",
+  "overlap_assessment": "2-3 sentence assessment of the overlap situation and whether hours appear double-counted",
+  "scores": { "clarity": 82, "pmi_alignment": 75, "action_verbs": 90, "specificity": 68, "overall": 79 },
+  "summary": "3-4 sentence honest assessment",
+  "strengths": ["strength 1", "strength 2"],
+  "gaps": ["gap 1", "gap 2"],
+  "per_project": [{ "title": "project title", "score": 78, "feedback": "2-3 sentence feedback", "improved_snippet": "rewritten first 1-2 sentences" }],
+  "final_recommendation": "Go",
+  "audit_risk": "Low"
+}
+final_recommendation: exactly Go / Revise / Not Ready
+audit_risk: exactly Low / Medium / High
+All scores 0-100. If overlapping hours appear double-counted, that must raise audit_risk to at least Medium and be flagged in gaps.
+For each project, the single Project Description field must show: project objective, the candidate's specific leadership role/actions, quantifiable outcomes, and process alignment. Flag missing or weak components explicitly. Check word count — under 200 words is a compliance issue; over 500 is also flagged.
+For PREDICTIVE projects: look for references to the five process groups (Initiating, Planning, Executing, Monitoring/Controlling, Closing) and PMBOK knowledge area terminology.
+For AGILE projects: check for Agile terminology — Roles (Scrum Master, Product Owner, Agile Team Facilitator), Artifacts (Product Backlog, Sprint Backlog, Kanban Board, Burndown/Burnup Charts), Events (Sprint Planning, Daily Scrum, Sprint Review, Retrospective), Practices (iterative development, incremental delivery, continuous integration, adaptive planning). Flag if Agile keywords are absent from an Agile-designated project — this is a significant gap.
+For HYBRID projects: check for both Agile terminology and process group structure.`;
+
+  const userMsg = `Review this PMP application:
+
+BACKGROUND:
+- Education (Bachelor's Degree or Higher): ${eduLabel}
+- Training hours: ${hrs}
+- Months of Experience (sum of project Total Months): ${months} | Overlapping Months: ${overlap} | Net Qualifying Months: ${net}
+
+OVERLAP ANALYSIS (pre-computed from dates entered):
+${overlapSummary}
+
+PROJECTS:
+${experiences.map((e,i) => {
+  const funcArea = e.functional_area === 'Other' ? (e.functional_area_other || 'Other (unspecified)') : e.functional_area;
+  const orgFocus = e.org_focus === 'Other' ? (e.org_focus_other || 'Other (unspecified)') : e.org_focus;
+  const raw = computeTotalMonths(e);
+  const adj = monthAttribution[i] || 0;
+  const monthsNote = adj < raw ? ` (only ${adj} count toward experience — ${raw-adj} month${raw-adj!==1?'s':''} already claimed by an earlier-starting project)` : '';
+  return `[Project ${i+1}]
+Title: ${e.title||'Not provided'} | Functional Reporting Area: ${funcArea||'Not provided'} | Team Size: ${e.team_size||'Not provided'}
+Dates: ${e.start||'?'} to ${e.end||'?'} (Total Months: ${raw}${monthsNote}) | Hours Leading: ${e.hours||'Not provided'}
+Organization: ${e.organization||'Not provided'} | Primary Focus: ${orgFocus||'Not provided'} | Budget: ${e.budget||'Not provided'}
+Job Title: ${e.job_title||'Not provided'} | Approach Methodology: ${e.approach||'Not specified'}
+Word count: ${wordCount(e)} (PMI requires 200-500)
+Project Description: ${e.description||'Not provided'}`;
+}).join('\n---\n')}
+
+Assess: action verbs, specificity, evidence of leading/directing (not just contributing), PMI ECO alignment, and overlap/double-counting risk. The overlap analysis above is from date math — incorporate it into your audit_risk and overlap_assessment.`;
+
+  try {
+    // NOTE: this calls a backend endpoint so the Anthropic API key stays server-side.
+    // Point this at whatever endpoint the hosting team wires up to proxy the request to Anthropic.
+    const resp = await fetch('/api/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
+    if (!resp.ok) { const err = await resp.json().catch(()=>({})); throw new Error(err.error?.message || `Request failed (${resp.status})`); }
+    const data = await resp.json();
+    const raw = data.content?.find(b => b.type === 'text')?.text || '';
+    const result = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    renderReview(result, overlapData);
+  } catch(err) {
+    document.getElementById('review-output').innerHTML = `<div class="eligibility-flag" style="border-color:var(--danger-line);background:var(--danger-bg);color:var(--danger);">
+      <strong>Review error:</strong> ${err.message}<br>
+      <span style="font-size:12px;color:var(--ink-soft);">Please try again in a moment. If this keeps happening, let your instructor know.</span>
+    </div>`;
+  } finally {
+    isReviewing = false;
+    if (btn) { btn.disabled = false; document.getElementById('reviewBtnLabel').textContent = 'Re-run Review'; document.getElementById('reviewBtnIcon').textContent = '↺'; }
+  }
+}
+
+function renderReview(r, overlapData) {
+  const rec = r.final_recommendation || 'Revise';
+  const risk = r.audit_risk || 'Medium';
+  const verdictClass = rec==='Go'?'verdict-go':rec==='Revise'?'verdict-revise':'verdict-notready';
+  const riskVar = risk==='Low'?'success':risk==='Medium'?'warn':'danger';
+
+  let html = '';
+
+  html += `<div class="verdict-bar ${verdictClass}">
+    <div><div class="v-label">Recommendation</div><div class="v-value">${rec}</div></div>
+    <span class="risk-tag" style="border-color:var(--${riskVar}-line);background:var(--${riskVar}-bg);color:var(--${riskVar});">Audit Risk: ${risk}</span>
+  </div>`;
+
+  if (r.eligibility_notes) {
+    const c = r.eligibility_ok;
+    html += `<div class="eligibility-flag" style="border-color:var(--${c?'success':'danger'}-line);background:var(--${c?'success':'danger'}-bg);color:var(--${c?'success':'danger'});">
+      <strong>${c?'Eligibility — looks on track':'Eligibility — issue flagged'}:</strong> ${r.eligibility_notes}
+    </div>`;
+  }
+
+  if (overlapData && overlapData.length > 0) {
+    const overlapRows = overlapData.map(o => {
+      const nameI = experiences[o.i].title || `Project ${o.i+1}`;
+      const nameJ = experiences[o.j].title || `Project ${o.j+1}`;
+      return `<div class="overlap-row">
+        <strong>${nameI}</strong> &amp; <strong>${nameJ}</strong>: ${monthsToStr(o.overlapMonths)} overlap — combined hours in period: ${Math.round(o.hoursI + o.hoursJ)}
+        <span class="overlap-tag ${o.auditRisk==='High'?'danger':'warn'}">${o.auditRisk} risk</span>
+      </div>`;
+    }).join('');
+    html += `<div class="rv-block">
+      <div class="rv-block-title">Concurrent Project Overlap</div>
+      ${r.overlap_assessment ? `<p style="font-size:13px;line-height:1.65;color:var(--ink-soft);margin-bottom:10px;">${r.overlap_assessment}</p>` : ''}
+      ${overlapRows}
+      <p style="font-size:11.5px;color:#8c8c8c;margin-top:10px;">PMI requires that hours from concurrent periods are counted only once. Revise your hours if they overlap with another project's reported hours.</p>
+    </div>`;
+  } else if (experiences.length > 1) {
+    html += `<div class="eligibility-flag" style="border-color:var(--success-line);background:var(--success-bg);color:var(--success);">No date overlaps detected between your projects.</div>`;
+  }
+
+  html += `<div class="rv-block"><div class="rv-block-title">Overall Assessment</div><p class="summary-text">${r.summary||''}</p></div>`;
+
+  const scoreLabels = { clarity:'Clarity', pmi_alignment:'PMI Alignment', action_verbs:'Action Verbs', specificity:'Specificity', overall:'Overall' };
+  html += `<div class="rv-block"><div class="rv-block-title">Score Breakdown</div>
+    <table class="score-table">${Object.entries(r.scores||{}).map(([k,v])=>`<tr><td class="s-label">${scoreLabels[k]||k}</td><td class="s-num">${v}</td><td class="s-bar"><div class="score-bar-wrap"><div class="score-bar-fill" style="width:${v}%"></div></div></td></tr>`).join('')}</table>
+  </div>`;
+
+  if ((r.strengths||[]).length || (r.gaps||[]).length) {
+    html += `<div class="rv-block"><div class="rv-block-title">Strengths &amp; Gaps</div><div class="bullet-cols">`;
+    html += `<div>${(r.strengths||[]).length ? `<div class="col-head">Strengths</div><ul class="bullet-list strengths">${r.strengths.map(s=>`<li>${s}</li>`).join('')}</ul>` : ''}</div>`;
+    html += `<div>${(r.gaps||[]).length ? `<div class="col-head">Areas to Strengthen</div><ul class="bullet-list gaps">${r.gaps.map(g=>`<li>${g}</li>`).join('')}</ul>` : ''}</div>`;
+    html += `</div></div>`;
+  }
+
+  if ((r.per_project||[]).length) {
+    html += `<div class="rv-block"><div class="rv-block-title">Per-Project Feedback</div>`;
+    r.per_project.forEach((p,i) => {
+      const sc = p.score||0;
+      const sColor = sc>=80?'var(--success)':sc>=60?'var(--warn)':'var(--danger)';
+      html += `<div class="proj-feedback">
+        <div class="proj-title"><span>${p.title||'Project '+(i+1)}</span>${p.score!==undefined?`<span class="proj-score" style="color:${sColor};">${p.score}/100</span>`:''}</div>
+        <div class="proj-body">${p.feedback||''}</div>
+        ${p.improved_snippet?`<div class="improved-wrap"><div class="improved-label">Suggested Rewrite</div>${p.improved_snippet}</div>`:''}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('review-output').innerHTML = html;
+}
+
+// ── Print: swap textareas for plain reflowing text blocks so content is never
+// clipped due to print-page width differing from the on-screen viewport width ──
+window.addEventListener('beforeprint', () => {
+  document.querySelectorAll('textarea').forEach(t => {
+    if (t.nextElementSibling && t.nextElementSibling.classList.contains('print-text-clone')) return;
+    const cs = getComputedStyle(t);
+    const div = document.createElement('div');
+    div.className = 'print-text-clone';
+    div.style.whiteSpace = 'pre-wrap';
+    div.style.fontFamily = cs.fontFamily;
+    div.style.fontSize = cs.fontSize;
+    div.style.lineHeight = cs.lineHeight;
+    div.style.padding = cs.padding;
+    div.style.color = '#000';
+    div.textContent = t.value || '';
+    t.insertAdjacentElement('afterend', div);
+    t.style.display = 'none';
+  });
+});
+window.addEventListener('afterprint', () => {
+  document.querySelectorAll('.print-text-clone').forEach(d => d.remove());
+  document.querySelectorAll('textarea').forEach(t => { t.style.display = ''; });
+});
+
+// ── Init ──
+renderExpList();
+</script>
+</body>
+</html>

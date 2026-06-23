@@ -728,7 +728,14 @@ Project Description: ${e.description||'Not provided'}`;
     if (!resp.ok) { const err = await resp.json().catch(()=>({})); throw new Error(err.error?.message || `Request failed (${resp.status})`); }
     const data = await resp.json();
     const raw = data.content?.find(b => b.type === 'text')?.text || '';
-    const result = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const cleaned = raw.replace(/```json|```/g,'').trim();
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+      throw new Error('The AI response did not contain a recognizable JSON object.');
+    }
+    const jsonSlice = cleaned.slice(firstBrace, lastBrace + 1);
+    const result = JSON.parse(jsonSlice);
     renderReview(result, overlapData);
   } catch(err) {
     document.getElementById('review-output').innerHTML = `<div class="eligibility-flag" style="border-color:var(--danger-line);background:var(--danger-bg);color:var(--danger);">

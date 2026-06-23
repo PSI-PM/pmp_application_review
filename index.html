@@ -729,12 +729,33 @@ Project Description: ${e.description||'Not provided'}`;
     const data = await resp.json();
     const raw = data.content?.find(b => b.type === 'text')?.text || '';
     const cleaned = raw.replace(/```json|```/g,'').trim();
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
-    if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+
+    // Walk the string and find the matching close brace for the first open brace,
+    // respecting string boundaries and escape sequences. This is bulletproof against
+    // any prose, examples, or extra JSON the model adds before or after the object.
+    function extractFirstJsonObject(text) {
+      const start = text.indexOf('{');
+      if (start === -1) return null;
+      let depth = 0, inString = false, escape = false;
+      for (let i = start; i < text.length; i++) {
+        const c = text[i];
+        if (escape) { escape = false; continue; }
+        if (c === '\\') { escape = true; continue; }
+        if (c === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (c === '{') depth++;
+        else if (c === '}') {
+          depth--;
+          if (depth === 0) return text.slice(start, i + 1);
+        }
+      }
+      return null;
+    }
+
+    const jsonSlice = extractFirstJsonObject(cleaned);
+    if (!jsonSlice) {
       throw new Error('The AI response did not contain a recognizable JSON object.');
     }
-    const jsonSlice = cleaned.slice(firstBrace, lastBrace + 1);
     const result = JSON.parse(jsonSlice);
     renderReview(result, overlapData);
   } catch(err) {

@@ -714,9 +714,8 @@ Project Description: ${e.description||'Not provided'}`;
 }).join('\n---\n')}`;
 
   try {
-    // NOTE: this calls a backend endpoint so the Anthropic API key stays server-side.
-    // Point this at whatever endpoint the hosting team wires up to proxy the request to Anthropic.
-    const resp = await fetch('/api/review', {
+    // Calls the Supabase Edge Function, which holds the Anthropic API key server-side.
+    const resp = await fetch('https://hgbwkcbnmxvuhjcccolr.supabase.co/functions/v1/review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

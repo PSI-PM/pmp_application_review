@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>PMP Application Reviewer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Carlito:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -224,7 +227,7 @@
 <div class="sheet-wrap">
 
   <div class="masthead">
-    <div class="masthead-eyebrow">PMP Certification &middot; Experience Worksheet</div>
+    <div class="masthead-eyebrow">PMP Certification &middot; Experience Worksheet &middot; v2</div>
     <h1>PMP Application Reviewer</h1>
     <p>Check your project experience against PMI's audit criteria before you submit — including automatic overlap detection across concurrent projects.</p>
   </div>
@@ -649,7 +652,9 @@ async function runReview() {
 
   const systemPrompt = `You are a senior PMP application reviewer with 15+ years of experience helping candidates pass PMI's audit process. You know the PMP Examination Content Outline deeply and understand exactly what PMI auditors look for.
 
-Return ONLY valid JSON. No markdown, no code fences. Use this exact structure:
+CRITICAL OUTPUT FORMAT: Your entire response must be a single valid JSON object and NOTHING ELSE. No prose before. No prose after. No markdown code fences. No explanation. Just the raw JSON object starting with { and ending with }. The response will be machine-parsed by JSON.parse — any character outside the JSON object will cause a parse failure.
+
+Use this exact structure:
 {
   "eligibility_ok": true,
   "eligibility_notes": "brief note on hour/month requirements",
@@ -715,24 +720,31 @@ Project Description: ${e.description||'Not provided'}`;
 
   try {
     // Calls the Supabase Edge Function, which holds the Anthropic API key server-side.
+    // Using "prefill" technique: pre-seeding the assistant response with "{" forces Claude
+    // to continue from valid JSON, eliminating preamble/postamble prose entirely.
     const resp = await fetch('https://hgbwkcbnmxvuhjcccolr.supabase.co/functions/v1/review', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 2000,
+        max_tokens: 4000,
         system: systemPrompt,
-        messages: [{ role: 'user', content: userMsg }]
+        messages: [
+          { role: 'user', content: userMsg },
+          { role: 'assistant', content: '{' }
+        ]
       })
     });
     if (!resp.ok) { const err = await resp.json().catch(()=>({})); throw new Error(err.error?.message || `Request failed (${resp.status})`); }
     const data = await resp.json();
-    const raw = data.content?.find(b => b.type === 'text')?.text || '';
+    // Because we prefilled with "{", Claude's reply continues from there — prepend it back.
+    const claudeText = data.content?.find(b => b.type === 'text')?.text || '';
+    const raw = '{' + claudeText;
     const cleaned = raw.replace(/```json|```/g,'').trim();
 
-    // Walk the string and find the matching close brace for the first open brace,
-    // respecting string boundaries and escape sequences. This is bulletproof against
-    // any prose, examples, or extra JSON the model adds before or after the object.
+    // Bulletproof JSON object extractor: walks the string respecting string boundaries
+    // and escape sequences, so we always stop at the matching close brace of the FIRST
+    // top-level object, no matter what trailing text the model adds.
     function extractFirstJsonObject(text) {
       const start = text.indexOf('{');
       if (start === -1) return null;
@@ -752,11 +764,32 @@ Project Description: ${e.description||'Not provided'}`;
       return null;
     }
 
-    const jsonSlice = extractFirstJsonObject(cleaned);
-    if (!jsonSlice) {
-      throw new Error('The AI response did not contain a recognizable JSON object.');
+    // Multi-strategy parsing: try strict parse, then extracted object, then surface the raw text.
+    let result = null;
+    let parseError = null;
+
+    // Strategy 1: try parsing the whole cleaned string as-is
+    try { result = JSON.parse(cleaned); } catch (e) { parseError = e; }
+
+    // Strategy 2: extract just the first balanced JSON object and parse that
+    if (!result) {
+      const slice = extractFirstJsonObject(cleaned);
+      if (slice) {
+        try { result = JSON.parse(slice); parseError = null; } catch (e) { parseError = e; }
+      }
     }
-    const result = JSON.parse(jsonSlice);
+
+    // Strategy 3: if both failed, show the raw response so we can see what went wrong
+    if (!result) {
+      console.error('JSON parse failed. Raw Claude output:', cleaned);
+      document.getElementById('review-output').innerHTML = `<div class="eligibility-flag" style="border-color:var(--danger-line);background:var(--danger-bg);color:var(--danger);">
+        <strong>Could not parse the AI review response.</strong> Error: ${parseError ? parseError.message : 'unknown'}<br>
+        <span style="font-size:12px;color:var(--ink-soft);">The raw response is shown below for debugging. Please share this with your instructor.</span>
+        <pre style="background:#fff;border:1px solid var(--header-gray-line);padding:10px;margin-top:10px;font-size:11px;max-height:300px;overflow:auto;white-space:pre-wrap;word-wrap:break-word;color:var(--ink);">${esc(cleaned)}</pre>
+      </div>`;
+      return;
+    }
+
     renderReview(result, overlapData);
   } catch(err) {
     document.getElementById('review-output').innerHTML = `<div class="eligibility-flag" style="border-color:var(--danger-line);background:var(--danger-bg);color:var(--danger);">

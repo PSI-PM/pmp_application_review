@@ -227,7 +227,7 @@
 <div class="sheet-wrap">
 
   <div class="masthead">
-    <div class="masthead-eyebrow">PMP Certification &middot; Experience Worksheet &middot; v2</div>
+    <div class="masthead-eyebrow">PMP Certification &middot; Experience Worksheet &middot; v3</div>
     <h1>PMP Application Reviewer</h1>
     <p>Check your project experience against PMI's audit criteria before you submit — including automatic overlap detection across concurrent projects.</p>
   </div>
@@ -582,16 +582,16 @@ function renderExpList() {
           ${exp.approach === 'Predictive' ? `
           <div class="ref-panel">
             <div class="ref-panel-title">Predictive (waterfall) vocabulary reference</div>
-            <div class="ref-row"><b>Process groups:</b> Initiating, Planning, Executing, Monitoring &amp; Controlling, Closing</div>
-            <div class="ref-row"><b>Knowledge areas:</b> Scope, Schedule, Cost, Risk, Stakeholder, Quality Management</div>
-            <div class="ref-note">Structure your Project Description around the five process groups above; reference PMBOK knowledge areas where relevant.</div>
+            <div class="ref-row"><b>Focus Areas:</b> Initiating, Planning, Executing, Monitoring &amp; Controlling, Closing</div>
+            <div class="ref-row"><b>Performance Domains:</b> Scope, Schedule, Cost, Risk, Stakeholder, Quality Management</div>
+            <div class="ref-note">Structure your Project Description around the five Focus Areas above; reference PMBOK Performance Domains where relevant.</div>
           </div>` : ''}
 
           <div class="desc-grid">
             <div class="desc-fields">
               <div class="desc-field">
                 <div class="xl-lab">Project Description <span class="opt">(200 to 500 words)</span></div>
-                <textarea oninput="updateExp(${i},'description',this.value)" placeholder="Describe the project objective, your specific role and leadership actions, the outcomes achieved, and how the project followed the process groups / agile practices noted above.">${esc(exp.description||'')}</textarea>
+                <textarea oninput="updateExp(${i},'description',this.value)" placeholder="Describe the project objective, your specific role and leadership actions, the outcomes achieved, and how the project followed the Focus Areas / agile practices noted above.">${esc(exp.description||'')}</textarea>
               </div>
             </div>
             <div class="wc-col" id="wc-${i}">
@@ -671,11 +671,11 @@ final_recommendation: exactly Go / Revise / Not Ready
 audit_risk: exactly Low / Medium / High
 All scores 0-100. If overlapping hours appear double-counted, that must raise audit_risk to at least Medium and be flagged in gaps.
 For each project, the single Project Description field must show: project objective, the candidate's specific leadership role/actions, quantifiable outcomes, and process alignment. Flag missing or weak components explicitly. Check word count — under 200 words is a compliance issue; over 500 is also flagged.
-For PREDICTIVE projects: look for references to the five process groups (Initiating, Planning, Executing, Monitoring/Controlling, Closing) and PMBOK knowledge area terminology.
+For PREDICTIVE projects: look for references to the five Focus Areas (Initiating, Planning, Executing, Monitoring/Controlling, Closing) and PMBOK Performance Domain terminology.
 For AGILE projects: check for Agile terminology — Roles (Scrum Master, Product Owner, Agile Team Facilitator), Artifacts (Product Backlog, Sprint Backlog, Kanban Board, Burndown/Burnup Charts), Events (Sprint Planning, Daily Scrum, Sprint Review, Retrospective), Practices (iterative development, incremental delivery, continuous integration, adaptive planning). Flag if Agile keywords are absent from an Agile-designated project — this is a significant gap.
-For HYBRID projects: check for both Agile terminology and process group structure.
+For HYBRID projects: check for both Agile terminology and Focus Area structure.
 
-SPECIFICITY STANDARD (this is what separates a strong application from a weak one): a description that only names the process group or phase ("I followed all five process groups" / "I managed planning and execution") without naming the actual PM tools and artifacts used should score LOWER on specificity and pmi_alignment than one that names concrete techniques. Reward explicit mentions of tools appropriate to the phase, for example:
+SPECIFICITY STANDARD (this is what separates a strong application from a weak one): a description that only names the Focus Area or phase ("I followed all five Focus Areas" / "I managed planning and execution") without naming the actual PM tools and artifacts used should score LOWER on specificity and pmi_alignment than one that names concrete techniques. Reward explicit mentions of tools appropriate to the phase, for example:
 - Initiating: project charter, stakeholder register/stakeholder analysis (e.g., power-interest grid), feasibility study or business case
 - Planning: WBS, scope baseline, network diagram / Critical Path Method or precedence diagramming, cost baseline (bottom-up or analogous estimation), risk register / probability-impact matrix, procurement management plan, communication management plan, RACI or responsibility assignment matrix, requirements traceability matrix
 - Executing: vendor/contractor coordination, quality audits or inspections, daily standups or sprint planning (if Agile elements are present), training delivery, change requests processed through a formal change control process
